@@ -79,3 +79,81 @@ export const auth = {
 
   refresh: () => api<UserPublic>('/api/v1/auth/refresh', { method: 'POST' }),
 }
+
+// --- Organizations ---
+
+export interface OrganizationWithRole {
+  id: string
+  name: string
+  slug: string
+  is_personal: boolean
+  role: string
+}
+
+export const organizations = {
+  list: () => api<OrganizationWithRole[]>('/api/v1/organizations'),
+}
+
+// --- Projects ---
+
+export interface Project {
+  id: string
+  organization_id: string
+  code: string
+  name: string
+  client: string | null
+  location: string | null
+  description: string | null
+}
+
+export interface CreateProjectBody {
+  organization_id: string
+  code: string
+  name: string
+  client?: string | null
+  location?: string | null
+  description?: string | null
+}
+
+export const projects = {
+  list: (organizationId?: string) => {
+    const q = organizationId ? `?organization_id=${organizationId}` : ''
+    return api<Project[]>(`/api/v1/projects${q}`)
+  },
+  create: (body: CreateProjectBody) =>
+    api<Project>('/api/v1/projects', { method: 'POST', body: JSON.stringify(body) }),
+  get: (id: string) => api<Project>(`/api/v1/projects/${id}`),
+  update: (id: string, body: Partial<Omit<CreateProjectBody, 'organization_id'>>) =>
+    api<Project>(`/api/v1/projects/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  remove: (id: string) => api<void>(`/api/v1/projects/${id}`, { method: 'DELETE' }),
+}
+
+// --- Buildings ---
+
+export interface BuildingRevision {
+  id: string
+  building_id: string
+  revision_number: number
+  source: string
+  status: string
+  notes: string | null
+}
+
+export interface Building {
+  id: string
+  project_id: string
+  name: string
+  active_revision_id: string | null
+}
+
+export interface BuildingDetail extends Building {
+  revisions: BuildingRevision[]
+}
+
+export const buildings = {
+  listByProject: (projectId: string) =>
+    api<Building[]>(`/api/v1/buildings?project_id=${projectId}`),
+  create: (body: { project_id: string; name: string }) =>
+    api<Building>('/api/v1/buildings', { method: 'POST', body: JSON.stringify(body) }),
+  get: (id: string) => api<BuildingDetail>(`/api/v1/buildings/${id}`),
+}

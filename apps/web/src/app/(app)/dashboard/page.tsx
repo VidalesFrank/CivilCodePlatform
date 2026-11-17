@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   Badge,
   Button,
@@ -11,17 +12,20 @@ import {
   CardTitle,
   Skeleton,
 } from '@civilcode/ui'
-import { auth, type UserPublic } from '@/lib/api'
+import { auth, projects as projectsApi, type Project, type UserPublic } from '@/lib/api'
 
 export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<UserPublic | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    auth
-      .me()
-      .then((u) => setUser(u))
+    Promise.all([auth.me(), projectsApi.list()])
+      .then(([u, ps]) => {
+        setUser(u)
+        setProjects(ps)
+      })
       .catch(() => router.push('/login'))
       .finally(() => setLoading(false))
   }, [router])
@@ -52,10 +56,10 @@ export default function DashboardPage() {
       <Card className="mb-8">
         <CardContent className="pt-6">
           <div className="flex items-center gap-3">
-            <Badge variant="info">Fase 0</Badge>
+            <Badge variant="info">Fase 1</Badge>
             <p className="text-cc-gray-600 text-sm dark:text-cc-gray-300">
-              CivilCode Studio está en construcción. Pronto podrás crear proyectos, importar
-              modelos ETABS y diseñar elementos estructurales desde este panel.
+              CivilCode Studio está en construcción. Ya puedes crear proyectos; importación
+              ETABS y visor 3D llegan en los próximos hitos.
             </p>
           </div>
         </CardContent>
@@ -65,10 +69,14 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="pt-6">
             <CardTitle className="text-base">Proyectos</CardTitle>
-            <CardDescription className="mt-1">0 activos</CardDescription>
-            <Button variant="primary" size="sm" className="mt-4" disabled>
-              Nuevo proyecto (próximamente)
-            </Button>
+            <CardDescription className="mt-1">
+              {loading ? '—' : `${projects.length} activos`}
+            </CardDescription>
+            <Link href="/projects">
+              <Button variant="primary" size="sm" className="mt-4">
+                Ver proyectos
+              </Button>
+            </Link>
           </CardContent>
         </Card>
         <Card>
@@ -84,6 +92,29 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {!loading && projects.length > 0 && (
+        <div className="mt-10">
+          <h2 className="mb-3 font-semibold text-cc-gray-900 text-lg dark:text-white">
+            Proyectos recientes
+          </h2>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {projects.slice(0, 6).map((p) => (
+              <Link key={p.id} href={`/projects/${p.id}`}>
+                <Card className="transition-shadow hover:shadow-md">
+                  <CardContent className="pt-6">
+                    <Badge variant="info">{p.code}</Badge>
+                    <CardTitle className="mt-2 text-base">{p.name}</CardTitle>
+                    <CardDescription className="mt-1">
+                      {p.client ?? 'Sin cliente'}
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

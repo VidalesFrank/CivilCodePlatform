@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { ComponentType } from 'react'
-import { BeamIcon, ColumnIcon, SheetIcon, WallIcon } from '@civilcode/icons'
+import { BeamIcon, ColumnIcon, MomentIcon, SheetIcon, WallIcon } from '@civilcode/icons'
 import type { IconProps } from '@civilcode/icons'
 
 interface NavItem {
@@ -12,6 +12,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Inicio', Icon: SheetIcon },
   { href: '/projects', label: 'Proyectos', Icon: SheetIcon },
+  { href: '/analysis', label: 'Análisis', Icon: MomentIcon },
   { href: '/design/beams', label: 'Vigas', Icon: BeamIcon },
   { href: '/design/columns', label: 'Columnas', Icon: ColumnIcon },
   { href: '/design/walls', label: 'Muros', Icon: WallIcon },

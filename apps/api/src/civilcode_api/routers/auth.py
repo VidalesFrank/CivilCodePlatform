@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.cookies import REFRESH_COOKIE, clear_auth_cookies, set_auth_cookies
 from ..auth.dependencies import get_current_user
+from ..auth.membership import provision_personal_org
 from ..db import get_db
 from ..models.refresh_token import RefreshToken
 from ..models.user import User
@@ -38,6 +39,8 @@ async def register(
         full_name=body.full_name,
     )
     db.add(user)
+    await db.flush()  # para tener user.id antes de provision_personal_org
+    await provision_personal_org(db, user)
     await db.commit()
     await db.refresh(user)
     return UserPublic.model_validate(user)
