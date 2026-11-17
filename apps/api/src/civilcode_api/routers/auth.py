@@ -11,7 +11,13 @@ from ..auth.membership import provision_personal_org
 from ..db import get_db
 from ..models.refresh_token import RefreshToken
 from ..models.user import User
-from ..schemas.auth import LoginRequest, LoginResponse, RegisterRequest, UserPublic
+from ..schemas.auth import (
+    LoginRequest,
+    LoginResponse,
+    RegisterRequest,
+    UpdateProfileRequest,
+    UserPublic,
+)
 from ..security import (
     create_access_token,
     generate_refresh_token,
@@ -130,4 +136,16 @@ async def logout(
 
 @router.get("/me", response_model=UserPublic)
 async def me(user: Annotated[User, Depends(get_current_user)]) -> UserPublic:
+    return UserPublic.model_validate(user)
+
+
+@router.patch("/me", response_model=UserPublic)
+async def update_me(
+    body: UpdateProfileRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserPublic:
+    user.full_name = body.full_name
+    await db.commit()
+    await db.refresh(user)
     return UserPublic.model_validate(user)

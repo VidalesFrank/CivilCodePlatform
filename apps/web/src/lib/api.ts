@@ -77,6 +77,9 @@ export const auth = {
 
   me: () => api<UserPublic>('/api/v1/auth/me'),
 
+  updateMe: (body: { full_name: string }) =>
+    api<UserPublic>('/api/v1/auth/me', { method: 'PATCH', body: JSON.stringify(body) }),
+
   refresh: () => api<UserPublic>('/api/v1/auth/refresh', { method: 'POST' }),
 }
 
@@ -90,8 +93,19 @@ export interface OrganizationWithRole {
   role: string
 }
 
+export interface Member {
+  id: string
+  organization_id: string
+  user_id: string
+  role: string
+  email: string
+  full_name: string
+}
+
 export const organizations = {
   list: () => api<OrganizationWithRole[]>('/api/v1/organizations'),
+  members: (organizationId: string) =>
+    api<Member[]>(`/api/v1/organizations/${organizationId}/members`),
 }
 
 // --- Projects ---
@@ -156,4 +170,20 @@ export const buildings = {
   create: (body: { project_id: string; name: string }) =>
     api<Building>('/api/v1/buildings', { method: 'POST', body: JSON.stringify(body) }),
   get: (id: string) => api<BuildingDetail>(`/api/v1/buildings/${id}`),
+  uploadRevision: async (buildingId: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const url = `${API_BASE}/api/v1/buildings/${buildingId}/revisions/upload`
+    const res = await fetch(url, { method: 'POST', body: form, credentials: 'include' })
+    const text = await res.text()
+    const body = text ? safeJson(text) : null
+    if (!res.ok) {
+      const msg =
+        body && typeof body === 'object' && 'detail' in body
+          ? String((body as { detail: unknown }).detail)
+          : `HTTP ${res.status}`
+      throw new ApiError(res.status, msg, body)
+    }
+    return body as BuildingRevision
+  },
 }

@@ -12,6 +12,7 @@ from ..models.organization import Membership, Organization
 from ..models.user import User
 from ..schemas.organization import (
     CreateOrganizationRequest,
+    MembershipPublic,
     OrganizationPublic,
     OrganizationWithRole,
 )
@@ -69,3 +70,36 @@ async def get_organization(
     if org is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return OrganizationPublic.model_validate(org)
+
+
+class _MemberRow(MembershipPublic):
+    email: str
+    full_name: str
+
+
+@router.get("/{organization_id}/members", response_model=list[_MemberRow])
+async def list_members(
+    organization_id: UUID,
+    _: Annotated[Membership, Depends(require_org_membership)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[_MemberRow]:
+    from ..models.user import User as UserModel
+
+    stmt = (
+        select(Membership, UserModel.email, UserModel.full_name)
+        .join(UserModel, UserModel.id == Membership.user_id)
+        .where(Membership.organization_id == organization_id)
+        .order_by(Membership.created_at)
+    )
+    rows = (await db.execute(stmt)).all()
+    return [
+        _MemberRow(
+            id=m.id,
+            organization_id=m.organization_id,
+            user_id=m.user_id,
+            role=m.role,
+            email=email,
+            full_name=full_name,
+        )
+        for m, email, full_name in rows
+    ]

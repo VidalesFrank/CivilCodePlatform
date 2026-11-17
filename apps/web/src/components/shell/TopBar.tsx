@@ -23,9 +23,11 @@ export function TopBar() {
         >
           ⌘K buscar
         </button>
-        <Avatar>
-          <AvatarFallback>FV</AvatarFallback>
-        </Avatar>
+        <Link href="/settings/profile" aria-label="Ajustes">
+          <Avatar>
+            <AvatarFallback>FV</AvatarFallback>
+          </Avatar>
+        </Link>
       </div>
     </header>
   )

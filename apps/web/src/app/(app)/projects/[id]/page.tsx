@@ -12,6 +12,7 @@ import {
 } from '@civilcode/ui'
 import { BeamIcon, ColumnIcon, SheetIcon, WallIcon } from '@civilcode/icons'
 import { ApiError, projects as projectsApi, type Project } from '@/lib/api'
+import { BuildingsPanel } from '@/components/project/BuildingsPanel'
 
 type Tab = 'overview' | 'model' | 'analysis' | 'design' | 'documents'
 
@@ -94,7 +95,7 @@ export default function ProjectDetailPage({
       </nav>
 
       {activeTab === 'overview' && <OverviewTab project={project} />}
-      {activeTab === 'model' && <PlaceholderTab title="Modelo 3D" phase="Fase 1 - en construcción" />}
+      {activeTab === 'model' && <BuildingsPanel projectId={project.id} />}
       {activeTab === 'analysis' && <PlaceholderTab title="Análisis" phase="Fase 2" />}
       {activeTab === 'design' && <DesignTab />}
       {activeTab === 'documents' && <PlaceholderTab title="Documentos" phase="Fase 4-6" />}

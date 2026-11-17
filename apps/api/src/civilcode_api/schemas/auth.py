@@ -25,3 +25,7 @@ class UserPublic(BaseModel):
 
 class LoginResponse(BaseModel):
     user: UserPublic
+
+
+class UpdateProfileRequest(BaseModel):
+    full_name: str = Field(min_length=1, max_length=255)

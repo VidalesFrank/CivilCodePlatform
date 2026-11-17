@@ -1,12 +1,13 @@
 from typing import Annotated
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.dependencies import get_current_user
 from ..auth.membership import require_project_access
+from ..config import get_settings
 from ..db import get_db
 from ..models.building import Building, BuildingRevision
 from ..models.project import Project
@@ -17,6 +18,7 @@ from ..schemas.building import (
     BuildingRevisionPublic,
     CreateBuildingRequest,
 )
+from ..storage import put_object
 
 router = APIRouter(prefix="/buildings", tags=["buildings"])
 
@@ -90,3 +92,75 @@ async def get_building_detail(
         active_revision_id=building.active_revision_id,
         revisions=[BuildingRevisionPublic.model_validate(r) for r in revs],
     )
+
+
+ALLOWED_EXTS = {".e2k": "etabs_e2k", ".xlsx": "etabs_xlsx"}
+
+
+@router.post(
+    "/{building_id}/revisions/upload",
+    response_model=BuildingRevisionPublic,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_building_revision(
+    building_id: UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    file: UploadFile = File(...),
+) -> BuildingRevisionPublic:
+    from ..auth.membership import _require_membership
+
+    building = (
+        await db.execute(select(Building).where(Building.id == building_id))
+    ).scalar_one_or_none()
+    if building is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Edificio no encontrado")
+    project = (
+        await db.execute(select(Project).where(Project.id == building.project_id))
+    ).scalar_one_or_none()
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    await _require_membership(db, user.id, project.organization_id)
+
+    name = file.filename or ""
+    ext = ("." + name.rsplit(".", 1)[-1].lower()) if "." in name else ""
+    if ext not in ALLOWED_EXTS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Extension no soportada. Permitidas: {', '.join(ALLOWED_EXTS)}",
+        )
+
+    # Siguiente revision_number para este building
+    max_rev = (
+        await db.execute(
+            select(func.coalesce(func.max(BuildingRevision.revision_number), 0)).where(
+                BuildingRevision.building_id == building_id
+            )
+        )
+    ).scalar_one()
+    next_num = int(max_rev) + 1
+
+    settings = get_settings()
+    key = f"buildings/{building_id}/rev-{next_num}-{uuid4().hex}{ext}"
+    put_object(
+        settings.s3_bucket_sources,
+        key,
+        file.file,
+        file.content_type or "application/octet-stream",
+    )
+
+    revision = BuildingRevision(
+        building_id=building_id,
+        created_by_user_id=user.id,
+        revision_number=next_num,
+        source=ALLOWED_EXTS[ext],
+        status="draft",
+        source_file_key=key,
+        notes=f"Upload de {name}",
+    )
+    db.add(revision)
+    await db.flush()  # Asigna revision.id antes de referenciarlo en el building
+    building.active_revision_id = revision.id
+    await db.commit()
+    await db.refresh(revision)
+    return BuildingRevisionPublic.model_validate(revision)

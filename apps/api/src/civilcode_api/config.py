@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
+    # S3 / MinIO
+    s3_endpoint_url: str = "http://localhost:9000"
+    s3_access_key: str = "civilcode"
+    s3_secret_key: str = "change-me"
+    s3_region: str = "us-east-1"
+    s3_bucket_sources: str = "cc-building-sources"
+
     @property
     def cookie_secure(self) -> bool:
         """Secure flag on cookies — true in prod/staging, false in local dev."""
