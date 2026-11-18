@@ -4,6 +4,8 @@ from .building import Building, BuildingRevision
 from .column_design import ColumnDesign
 from .design import BeamDesign
 from .element import Element
+from .footing_design import FootingDesign
+from .wall_design import WallDesign
 from .loads import Combination, LoadCase, LoadPattern
 from .organization import Membership, Organization
 from .project import Project
@@ -33,4 +35,6 @@ __all__ = [
     "AnalysisRun",
     "BeamDesign",
     "ColumnDesign",
+    "WallDesign",
+    "FootingDesign",
 ]

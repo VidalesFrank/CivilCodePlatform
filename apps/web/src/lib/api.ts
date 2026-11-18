@@ -401,6 +401,102 @@ export const columnDesigns = {
   get: (id: string) => api<ColumnDesign>(`/api/v1/column-designs/${id}`),
 }
 
+// --- Wall designs ---
+
+export interface WallDesignConfig {
+  fc_mpa: number
+  fy_mpa: number
+  cover_mm: number
+  ductility: 'DES' | 'DMO' | 'Ninguna'
+  rho_h_target: number
+  rho_v_target: number
+  Pu_kN: number
+  Vu_kN: number
+  Mu_kNm: number
+  t_cm?: number | null
+  Lw_cm?: number | null
+  hw_cm?: number | null
+}
+
+export interface WallDesign {
+  id: string
+  building_revision_id: string
+  created_by_user_id: string
+  name: string
+  element_ids: string[]
+  config: WallDesignConfig
+  status: 'pending' | 'running' | 'completed' | 'completed_with_warnings' | 'failed'
+  result_summary: Record<string, unknown> | null
+  log: string | null
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
+}
+
+export const wallDesigns = {
+  list: (buildingId: string, revisionId: string) =>
+    api<WallDesign[]>(
+      `/api/v1/buildings/${buildingId}/revisions/${revisionId}/wall-designs`,
+    ),
+  createByLevel: (
+    buildingId: string,
+    revisionId: string,
+    levelId: string,
+    config: Partial<WallDesignConfig>,
+  ) =>
+    api<WallDesign>(
+      `/api/v1/buildings/${buildingId}/revisions/${revisionId}/wall-designs/by-level`,
+      { method: 'POST', body: JSON.stringify({ level_id: levelId, config }) },
+    ),
+}
+
+// --- Footing designs ---
+
+export interface FootingDesignConfig {
+  fc_mpa: number
+  fy_mpa: number
+  cover_mm: number
+  Pu_kN: number
+  P_serv_kN?: number | null
+  q_adm_kPa: number
+  gamma_soil_kN_m3: number
+  overburden_depth_m: number
+  bc_cm: number
+  hc_cm: number
+}
+
+export interface FootingDesign {
+  id: string
+  building_revision_id: string
+  created_by_user_id: string
+  name: string
+  element_ids: string[]
+  config: FootingDesignConfig
+  status: 'pending' | 'running' | 'completed' | 'completed_with_warnings' | 'failed'
+  result_summary: Record<string, unknown> | null
+  log: string | null
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
+}
+
+export const footingDesigns = {
+  list: (buildingId: string, revisionId: string) =>
+    api<FootingDesign[]>(
+      `/api/v1/buildings/${buildingId}/revisions/${revisionId}/footing-designs`,
+    ),
+  createByLevel: (
+    buildingId: string,
+    revisionId: string,
+    levelId: string,
+    config: Partial<FootingDesignConfig>,
+  ) =>
+    api<FootingDesign>(
+      `/api/v1/buildings/${buildingId}/revisions/${revisionId}/footing-designs/by-level`,
+      { method: 'POST', body: JSON.stringify({ level_id: levelId, config }) },
+    ),
+}
+
 export const designs = {
   list: (buildingId: string, revisionId: string) =>
     api<BeamDesign[]>(`/api/v1/buildings/${buildingId}/revisions/${revisionId}/beam-designs`),

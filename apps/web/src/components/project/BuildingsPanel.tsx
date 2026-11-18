@@ -4,6 +4,7 @@ import { AnalysisPanel } from '@/components/building/AnalysisPanel'
 import { ColumnDesignPanel } from '@/components/building/ColumnDesignPanel'
 import { DesignPanel } from '@/components/building/DesignPanel'
 import { ModelViewer3D } from '@/components/building/ModelViewer3D'
+import { SimpleDesignPanel } from '@/components/building/SimpleDesignPanel'
 import {
   ApiError,
   type Building,
@@ -11,6 +12,8 @@ import {
   type BuildingRevision,
   type RevisionGeometry,
   buildings as buildingsApi,
+  footingDesigns as footingDesignsApi,
+  wallDesigns as wallDesignsApi,
 } from '@/lib/api'
 import { CubeIcon, DxfIcon } from '@civilcode/icons'
 import {
@@ -288,6 +291,8 @@ function RevisionRow({
   const [analysisOpen, setAnalysisOpen] = useState(false)
   const [designOpen, setDesignOpen] = useState(false)
   const [columnDesignOpen, setColumnDesignOpen] = useState(false)
+  const [wallDesignOpen, setWallDesignOpen] = useState(false)
+  const [footingDesignOpen, setFootingDesignOpen] = useState(false)
 
   const canImport = revision.status === 'draft' || revision.status === 'invalid'
   const canView = revision.status === 'imported'
@@ -395,6 +400,24 @@ function RevisionRow({
               {columnDesignOpen ? 'Ocultar columnas' : 'Diseñar columnas'}
             </Button>
           )}
+          {canView && (
+            <Button
+              size="sm"
+              variant={wallDesignOpen ? 'ghost' : 'secondary'}
+              onClick={() => setWallDesignOpen(!wallDesignOpen)}
+            >
+              {wallDesignOpen ? 'Ocultar muros' : 'Diseñar muros'}
+            </Button>
+          )}
+          {canView && (
+            <Button
+              size="sm"
+              variant={footingDesignOpen ? 'ghost' : 'secondary'}
+              onClick={() => setFootingDesignOpen(!footingDesignOpen)}
+            >
+              {footingDesignOpen ? 'Ocultar zapatas' : 'Diseñar zapatas'}
+            </Button>
+          )}
         </div>
       </div>
       {error && (
@@ -420,6 +443,34 @@ function RevisionRow({
       {columnDesignOpen && (
         <div className="mt-3">
           <ColumnDesignPanel buildingId={buildingId} revisionId={revision.id} />
+        </div>
+      )}
+      {wallDesignOpen && (
+        <div className="mt-3">
+          <SimpleDesignPanel
+            buildingId={buildingId}
+            revisionId={revision.id}
+            title="Diseño de muros · NSR-10 (cortante en plano simplificado)"
+            description="Cuantías mínimas ρh/ρv, Vn con factor αc por relación hw/Lw, flag de elementos de borde confinados."
+            elementKinds={['wall']}
+            listDesigns={wallDesignsApi.list}
+            dispatchByLevel={(bId, rId, lId) => wallDesignsApi.createByLevel(bId, rId, lId, {})}
+            emptyLevelMessage="Si no hay muros en la revisión importada, el endpoint devolverá 400."
+          />
+        </div>
+      )}
+      {footingDesignOpen && (
+        <div className="mt-3">
+          <SimpleDesignPanel
+            buildingId={buildingId}
+            revisionId={revision.id}
+            title="Diseño de zapatas · NSR-10 (aisladas, cuadradas)"
+            description="Dimensionamiento L×B por q_adm, peralte iterativo por punzonamiento, flexión en cara de columna."
+            elementKinds={['footing', 'column']}
+            listDesigns={footingDesignsApi.list}
+            dispatchByLevel={(bId, rId, lId) => footingDesignsApi.createByLevel(bId, rId, lId, {})}
+            emptyLevelMessage="Toma columnas del nivel seleccionado como arranques; en nivel base típicamente."
+          />
         </div>
       )}
     </li>

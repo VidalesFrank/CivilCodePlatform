@@ -62,3 +62,21 @@ async def dispatch_column_design(design_id: str) -> str:
         [design_id],
         "design",
     )
+
+
+async def dispatch_wall_design(design_id: str) -> str:
+    return await asyncio.to_thread(
+        _send_task_sync,
+        "civilcode_worker.tasks.design.run_wall_design",
+        [design_id],
+        "design",
+    )
+
+
+async def dispatch_footing_design(design_id: str) -> str:
+    return await asyncio.to_thread(
+        _send_task_sync,
+        "civilcode_worker.tasks.design.run_footing_design",
+        [design_id],
+        "design",
+    )

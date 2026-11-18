@@ -11,10 +11,12 @@ from .routers import (
     buildings,
     column_designs,
     designs,
+    footing_designs,
     health,
     organizations,
     projects,
     stats,
+    wall_designs,
 )
 
 
@@ -52,6 +54,8 @@ app.include_router(analyses.router, prefix="/api/v1")
 app.include_router(designs.router, prefix="/api/v1")
 app.include_router(stats.router, prefix="/api/v1")
 app.include_router(column_designs.router, prefix="/api/v1")
+app.include_router(wall_designs.router, prefix="/api/v1")
+app.include_router(footing_designs.router, prefix="/api/v1")
 
 
 @app.get("/")

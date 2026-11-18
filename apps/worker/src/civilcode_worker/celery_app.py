@@ -15,6 +15,8 @@ app = Celery(
         "civilcode_worker.tasks.analyze",
         "civilcode_worker.tasks.design_beams",
         "civilcode_worker.tasks.design_columns",
+        "civilcode_worker.tasks.design_walls",
+        "civilcode_worker.tasks.design_footings",
     ],
 )
 
