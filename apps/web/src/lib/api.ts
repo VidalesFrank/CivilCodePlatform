@@ -286,3 +286,58 @@ export const analyses = {
     }),
   get: (runId: string) => api<AnalysisRun>(`/api/v1/analyses/${runId}`),
 }
+
+// --- Beam designs ---
+
+export interface BeamDesignConfig {
+  fc_mpa: number
+  fy_mpa: number
+  fys_mpa: number
+  cover_mm: number
+  ductility: 'DES' | 'DMO' | 'Ninguna'
+  live_load_kN_m2: number
+  dead_extra_kN_m2: number
+  tributary_width_m: number
+}
+
+export interface BeamDesign {
+  id: string
+  building_revision_id: string
+  created_by_user_id: string
+  name: string
+  element_ids: string[]
+  config: BeamDesignConfig
+  status: 'pending' | 'running' | 'completed' | 'completed_with_warnings' | 'failed'
+  result_summary: Record<string, unknown> | null
+  log: string | null
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
+}
+
+export const designs = {
+  list: (buildingId: string, revisionId: string) =>
+    api<BeamDesign[]>(`/api/v1/buildings/${buildingId}/revisions/${revisionId}/beam-designs`),
+  createByLevel: (
+    buildingId: string,
+    revisionId: string,
+    levelId: string,
+    config: Partial<BeamDesignConfig>,
+  ) =>
+    api<BeamDesign>(
+      `/api/v1/buildings/${buildingId}/revisions/${revisionId}/beam-designs/by-level`,
+      { method: 'POST', body: JSON.stringify({ level_id: levelId, config }) },
+    ),
+  create: (
+    buildingId: string,
+    revisionId: string,
+    name: string,
+    elementIds: string[],
+    config: Partial<BeamDesignConfig>,
+  ) =>
+    api<BeamDesign>(`/api/v1/buildings/${buildingId}/revisions/${revisionId}/beam-designs`, {
+      method: 'POST',
+      body: JSON.stringify({ name, element_ids: elementIds, config }),
+    }),
+  get: (designId: string) => api<BeamDesign>(`/api/v1/beam-designs/${designId}`),
+}

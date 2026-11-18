@@ -42,3 +42,13 @@ async def dispatch_quick_check(analysis_run_id: str) -> str:
         [analysis_run_id],
         "analysis",
     )
+
+
+async def dispatch_beam_design(design_id: str) -> str:
+    """Encola el diseño de vigas simplificado."""
+    return await asyncio.to_thread(
+        _send_task_sync,
+        "civilcode_worker.tasks.design.run_beam_design",
+        [design_id],
+        "design",
+    )
