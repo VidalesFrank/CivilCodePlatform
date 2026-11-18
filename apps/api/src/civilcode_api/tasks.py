@@ -32,3 +32,13 @@ async def dispatch_import(revision_id: str) -> str:
         [revision_id],
         "import",
     )
+
+
+async def dispatch_quick_check(analysis_run_id: str) -> str:
+    """Encola el análisis preliminar (quick check) para una AnalysisRun."""
+    return await asyncio.to_thread(
+        _send_task_sync,
+        "civilcode_worker.tasks.analysis.run_quick_check",
+        [analysis_run_id],
+        "analysis",
+    )

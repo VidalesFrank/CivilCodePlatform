@@ -1,3 +1,4 @@
+from .analysis import AnalysisRun
 from .base import Base
 from .building import Building, BuildingRevision
 from .element import Element
@@ -27,4 +28,5 @@ __all__ = [
     "LoadPattern",
     "LoadCase",
     "Combination",
+    "AnalysisRun",
 ]

@@ -16,6 +16,33 @@ export class ApiError extends Error {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
+// Endpoints exentos de auto-refresh (evita bucles).
+const AUTH_EXEMPT = ['/api/v1/auth/login', '/api/v1/auth/refresh', '/api/v1/auth/register']
+
+// Promesa compartida: si varias requests reciben 401 a la vez, todas esperan al mismo refresh.
+let refreshPromise: Promise<boolean> | null = null
+
+async function tryRefresh(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      return res.ok
+    } catch {
+      return false
+    } finally {
+      // Permite siguientes intentos cuando venza otra vez
+      setTimeout(() => {
+        refreshPromise = null
+      }, 100)
+    }
+  })()
+  return refreshPromise
+}
+
 export async function api<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
   const url = path.startsWith('http') ? path : `${API_BASE}${path}`
   const headers = new Headers(init.headers)
@@ -23,11 +50,18 @@ export async function api<T = unknown>(path: string, init: RequestInit = {}): Pr
     headers.set('Content-Type', 'application/json')
   }
 
-  const res = await fetch(url, {
-    ...init,
-    credentials: 'include',
-    headers,
-  })
+  let res = await fetch(url, { ...init, credentials: 'include', headers })
+
+  if (res.status === 401 && !AUTH_EXEMPT.some((p) => path.startsWith(p))) {
+    const refreshed = await tryRefresh()
+    if (refreshed) {
+      res = await fetch(url, { ...init, credentials: 'include', headers })
+    } else if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      window.location.href = '/login'
+      // Devuelve una promesa que nunca resuelve mientras redirige
+      return new Promise<T>(() => {})
+    }
+  }
 
   const text = await res.text()
   const body = text ? safeJson(text) : null
@@ -224,4 +258,31 @@ export const buildings = {
     }),
   getGeometry: (buildingId: string, revisionId: string) =>
     api<RevisionGeometry>(`/api/v1/buildings/${buildingId}/revisions/${revisionId}/geometry`),
+}
+
+// --- Analysis runs ---
+
+export interface AnalysisRun {
+  id: string
+  building_revision_id: string
+  created_by_user_id: string
+  kind: string
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  inputs: Record<string, unknown>
+  result_summary: Record<string, unknown> | null
+  log: string | null
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
+}
+
+export const analyses = {
+  list: (buildingId: string, revisionId: string) =>
+    api<AnalysisRun[]>(`/api/v1/buildings/${buildingId}/revisions/${revisionId}/analyses`),
+  create: (buildingId: string, revisionId: string, kind = 'quick_check') =>
+    api<AnalysisRun>(`/api/v1/buildings/${buildingId}/revisions/${revisionId}/analyses`, {
+      method: 'POST',
+      body: JSON.stringify({ kind }),
+    }),
+  get: (runId: string) => api<AnalysisRun>(`/api/v1/analyses/${runId}`),
 }

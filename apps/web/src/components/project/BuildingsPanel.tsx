@@ -1,5 +1,6 @@
 'use client'
 
+import { AnalysisPanel } from '@/components/building/AnalysisPanel'
 import { ModelViewer3D } from '@/components/building/ModelViewer3D'
 import {
   ApiError,
@@ -282,6 +283,7 @@ function RevisionRow({
   const [viewerOpen, setViewerOpen] = useState(false)
   const [geometry, setGeometry] = useState<RevisionGeometry | null>(null)
   const [loadingGeom, setLoadingGeom] = useState(false)
+  const [analysisOpen, setAnalysisOpen] = useState(false)
 
   const canImport = revision.status === 'draft' || revision.status === 'invalid'
   const canView = revision.status === 'imported'
@@ -362,6 +364,15 @@ function RevisionRow({
               {viewerOpen ? 'Ocultar 3D' : 'Ver 3D'}
             </Button>
           )}
+          {canView && (
+            <Button
+              size="sm"
+              variant={analysisOpen ? 'ghost' : 'secondary'}
+              onClick={() => setAnalysisOpen(!analysisOpen)}
+            >
+              {analysisOpen ? 'Ocultar análisis' : 'Análisis'}
+            </Button>
+          )}
         </div>
       </div>
       {error && (
@@ -372,6 +383,11 @@ function RevisionRow({
       {viewerOpen && geometry && (
         <div className="mt-3">
           <ModelViewer3D geometry={geometry} />
+        </div>
+      )}
+      {analysisOpen && (
+        <div className="mt-3">
+          <AnalysisPanel buildingId={buildingId} revisionId={revision.id} />
         </div>
       )}
     </li>

@@ -31,7 +31,8 @@ class Settings(BaseSettings):
         description="Secret for signing JWT access tokens",
     )
     api_jwt_algorithm: str = "HS256"
-    api_jwt_access_ttl_minutes: int = 15
+    # Default 24h en dev; en prod/staging poner a 15-60 min via env.
+    api_jwt_access_ttl_minutes: int = 60 * 24
     api_jwt_refresh_ttl_days: int = 30
 
     # Database
