@@ -259,20 +259,32 @@ def canonical_to_sql(db: Session, revision_id: UUID, model: dict) -> dict:
         n_shells += 1
 
     # LoadPatterns
+    # El model_builder actual produce list[str] (solo nombres); versiones
+    # anteriores producían dict[name, info|type_str]. Soportamos ambos.
     lp_count = 0
-    for name, info in (model.get("metadata", {}).get("load_patterns") or {}).items():
-        kind = "dead"
+    raw_lp = model.get("metadata", {}).get("load_patterns") or []
+    if isinstance(raw_lp, dict):
+        lp_iter = raw_lp.items()
+    else:
+        lp_iter = ((name, None) for name in raw_lp)
+
+    for name, info in lp_iter:
+        type_str = ""
         if isinstance(info, dict):
-            t = str(info.get("type", "")).lower()
-            kind = (
-                "live"
-                if "live" in t
-                else "seismic"
-                if "seis" in t or "quake" in t
-                else "wind"
-                if "wind" in t
-                else "dead"
-            )
+            type_str = str(info.get("type", "")).lower()
+        elif isinstance(info, str):
+            type_str = info.lower()
+        else:
+            type_str = str(name).lower()  # heurística: usar el nombre
+        kind = (
+            "live"
+            if "live" in type_str
+            else "seismic"
+            if "seis" in type_str or "quake" in type_str
+            else "wind"
+            if "wind" in type_str
+            else "dead"
+        )
         db.add(
             LoadPattern(
                 building_revision_id=revision_id,
