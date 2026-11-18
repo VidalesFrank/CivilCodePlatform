@@ -14,6 +14,7 @@ app = Celery(
         "civilcode_worker.tasks.import_etabs",
         "civilcode_worker.tasks.analyze",
         "civilcode_worker.tasks.design_beams",
+        "civilcode_worker.tasks.design_columns",
     ],
 )
 

@@ -52,3 +52,13 @@ async def dispatch_beam_design(design_id: str) -> str:
         [design_id],
         "design",
     )
+
+
+async def dispatch_column_design(design_id: str) -> str:
+    """Encola el diseño de columnas simplificado."""
+    return await asyncio.to_thread(
+        _send_task_sync,
+        "civilcode_worker.tasks.design.run_column_design",
+        [design_id],
+        "design",
+    )

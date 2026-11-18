@@ -1,6 +1,7 @@
 'use client'
 
 import { AnalysisPanel } from '@/components/building/AnalysisPanel'
+import { ColumnDesignPanel } from '@/components/building/ColumnDesignPanel'
 import { DesignPanel } from '@/components/building/DesignPanel'
 import { ModelViewer3D } from '@/components/building/ModelViewer3D'
 import {
@@ -286,6 +287,7 @@ function RevisionRow({
   const [loadingGeom, setLoadingGeom] = useState(false)
   const [analysisOpen, setAnalysisOpen] = useState(false)
   const [designOpen, setDesignOpen] = useState(false)
+  const [columnDesignOpen, setColumnDesignOpen] = useState(false)
 
   const canImport = revision.status === 'draft' || revision.status === 'invalid'
   const canView = revision.status === 'imported'
@@ -381,7 +383,16 @@ function RevisionRow({
               variant={designOpen ? 'ghost' : 'secondary'}
               onClick={() => setDesignOpen(!designOpen)}
             >
-              {designOpen ? 'Ocultar diseño' : 'Diseñar vigas'}
+              {designOpen ? 'Ocultar vigas' : 'Diseñar vigas'}
+            </Button>
+          )}
+          {canView && (
+            <Button
+              size="sm"
+              variant={columnDesignOpen ? 'ghost' : 'secondary'}
+              onClick={() => setColumnDesignOpen(!columnDesignOpen)}
+            >
+              {columnDesignOpen ? 'Ocultar columnas' : 'Diseñar columnas'}
             </Button>
           )}
         </div>
@@ -404,6 +415,11 @@ function RevisionRow({
       {designOpen && (
         <div className="mt-3">
           <DesignPanel buildingId={buildingId} revisionId={revision.id} />
+        </div>
+      )}
+      {columnDesignOpen && (
+        <div className="mt-3">
+          <ColumnDesignPanel buildingId={buildingId} revisionId={revision.id} />
         </div>
       )}
     </li>

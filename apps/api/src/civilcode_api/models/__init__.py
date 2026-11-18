@@ -1,6 +1,7 @@
 from .analysis import AnalysisRun
 from .base import Base
 from .building import Building, BuildingRevision
+from .column_design import ColumnDesign
 from .design import BeamDesign
 from .element import Element
 from .loads import Combination, LoadCase, LoadPattern
@@ -31,4 +32,5 @@ __all__ = [
     "Combination",
     "AnalysisRun",
     "BeamDesign",
+    "ColumnDesign",
 ]

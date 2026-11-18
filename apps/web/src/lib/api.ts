@@ -315,6 +315,92 @@ export interface BeamDesign {
   created_at: string
 }
 
+// --- Stats overview ---
+
+export interface RecentActivityItem {
+  kind: 'import' | 'analysis' | 'design'
+  label: string
+  project_name: string | null
+  project_id: string | null
+  building_id: string | null
+  revision_id: string | null
+  status: string | null
+  created_at: string
+}
+
+export interface OverviewStats {
+  n_projects: number
+  n_buildings: number
+  n_revisions_total: number
+  n_revisions_imported: number
+  n_analyses_total: number
+  n_analyses_completed: number
+  n_designs_total: number
+  n_designs_completed: number
+  recent_activity: RecentActivityItem[]
+}
+
+export const stats = {
+  overview: (projectId?: string) =>
+    api<OverviewStats>(
+      projectId
+        ? `/api/v1/stats/overview?project_id=${projectId}`
+        : '/api/v1/stats/overview',
+    ),
+}
+
+// --- Column designs ---
+
+export interface ColumnDesignConfig {
+  fc_mpa: number
+  fy_mpa: number
+  fys_mpa: number
+  cover_mm: number
+  ductility: 'DES' | 'DMO' | 'Ninguna'
+  rho_long_target: number
+  tributary_area_m2: number
+  levels_above: number
+  dead_slab_kN_m2: number
+  live_kN_m2: number
+  Pu_kN?: number | null
+  Mux_kNm?: number | null
+  Muy_kNm?: number | null
+  Vu_kN?: number | null
+}
+
+export interface ColumnDesign {
+  id: string
+  building_revision_id: string
+  created_by_user_id: string
+  name: string
+  element_ids: string[]
+  config: ColumnDesignConfig
+  status: 'pending' | 'running' | 'completed' | 'completed_with_warnings' | 'failed'
+  result_summary: Record<string, unknown> | null
+  log: string | null
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
+}
+
+export const columnDesigns = {
+  list: (buildingId: string, revisionId: string) =>
+    api<ColumnDesign[]>(
+      `/api/v1/buildings/${buildingId}/revisions/${revisionId}/column-designs`,
+    ),
+  createByLevel: (
+    buildingId: string,
+    revisionId: string,
+    levelId: string,
+    config: Partial<ColumnDesignConfig>,
+  ) =>
+    api<ColumnDesign>(
+      `/api/v1/buildings/${buildingId}/revisions/${revisionId}/column-designs/by-level`,
+      { method: 'POST', body: JSON.stringify({ level_id: levelId, config }) },
+    ),
+  get: (id: string) => api<ColumnDesign>(`/api/v1/column-designs/${id}`),
+}
+
 export const designs = {
   list: (buildingId: string, revisionId: string) =>
     api<BeamDesign[]>(`/api/v1/buildings/${buildingId}/revisions/${revisionId}/beam-designs`),
