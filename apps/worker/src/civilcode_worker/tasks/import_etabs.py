@@ -219,9 +219,10 @@ def canonical_to_sql(db: Session, revision_id: UUID, model: dict) -> dict:
     db.flush()
 
     # Elements: frames (beam/column) + shells (slab/wall)
+    # model_builder usa la clave "element_type"; aceptamos tambien "type" por compat.
     n_frames = 0
     for label, f in (model.get("frames") or {}).items():
-        kind_raw = str(f.get("type", "")).lower()
+        kind_raw = str(f.get("element_type") or f.get("type") or "").lower()
         kind = "beam" if kind_raw == "beam" else ("column" if kind_raw == "column" else kind_raw or "beam")
         sec_name = f.get("section")
         story = f.get("story")
@@ -236,14 +237,14 @@ def canonical_to_sql(db: Session, revision_id: UUID, model: dict) -> dict:
                 level_id=level_by_name[story].id if story in level_by_name else None,
                 node_i_id=node_by_tag[joint_i].id if joint_i in node_by_tag else None,
                 node_j_id=node_by_tag[joint_j].id if joint_j in node_by_tag else None,
-                properties={k: v for k, v in f.items() if k not in ("type", "section", "story", "joint_i", "joint_j")},
+                properties={k: v for k, v in f.items() if k not in ("type", "element_type", "section", "story", "joint_i", "joint_j")},
             )
         )
         n_frames += 1
 
     n_shells = 0
     for label, sh in (model.get("shells") or {}).items():
-        kind_raw = str(sh.get("type", "")).lower()
+        kind_raw = str(sh.get("element_type") or sh.get("type") or "").lower()
         kind = "slab" if kind_raw == "slab" else ("wall" if kind_raw == "wall" else kind_raw or "slab")
         story = sh.get("story")
         db.add(
@@ -253,7 +254,7 @@ def canonical_to_sql(db: Session, revision_id: UUID, model: dict) -> dict:
                 kind=kind,
                 section_id=None,
                 level_id=level_by_name[story].id if story in level_by_name else None,
-                properties={k: v for k, v in sh.items() if k not in ("type", "story")},
+                properties={k: v for k, v in sh.items() if k not in ("type", "element_type", "story")},
             )
         )
         n_shells += 1

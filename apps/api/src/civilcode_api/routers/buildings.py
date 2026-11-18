@@ -10,13 +10,19 @@ from ..auth.membership import require_project_access
 from ..config import get_settings
 from ..db import get_db
 from ..models.building import Building, BuildingRevision
+from ..models.element import Element
 from ..models.project import Project
+from ..models.structure import Level, Node
 from ..models.user import User
 from ..schemas.building import (
     BuildingDetail,
     BuildingPublic,
     BuildingRevisionPublic,
     CreateBuildingRequest,
+    ElementPublic,
+    LevelPublic,
+    NodePublic,
+    RevisionGeometry,
 )
 from ..storage import put_object
 from ..tasks import dispatch_import
@@ -212,3 +218,60 @@ async def dispatch_revision_import(
 
     await dispatch_import(str(revision_id))
     return BuildingRevisionPublic.model_validate(revision)
+
+
+@router.get(
+    "/{building_id}/revisions/{revision_id}/geometry",
+    response_model=RevisionGeometry,
+)
+async def get_revision_geometry(
+    building_id: UUID,
+    revision_id: UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> RevisionGeometry:
+    """Geometría de una revisión importada: niveles, nodos y elementos."""
+    from ..auth.membership import _require_membership
+
+    revision = (
+        await db.execute(select(BuildingRevision).where(BuildingRevision.id == revision_id))
+    ).scalar_one_or_none()
+    if revision is None or revision.building_id != building_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Revisión no encontrada")
+    if revision.status != "imported":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Revisión en estado '{revision.status}'; aún no hay geometría",
+        )
+
+    building = (
+        await db.execute(select(Building).where(Building.id == building_id))
+    ).scalar_one_or_none()
+    project = (
+        await db.execute(select(Project).where(Project.id == building.project_id))
+    ).scalar_one_or_none() if building else None
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    await _require_membership(db, user.id, project.organization_id)
+
+    levels = (
+        await db.execute(
+            select(Level).where(Level.building_revision_id == revision_id).order_by(Level.elevation)
+        )
+    ).scalars().all()
+    nodes = (
+        await db.execute(
+            select(Node).where(Node.building_revision_id == revision_id)
+        )
+    ).scalars().all()
+    elements = (
+        await db.execute(
+            select(Element).where(Element.building_revision_id == revision_id)
+        )
+    ).scalars().all()
+
+    return RevisionGeometry(
+        levels=[LevelPublic.model_validate(x) for x in levels],
+        nodes=[NodePublic.model_validate(x) for x in nodes],
+        elements=[ElementPublic.model_validate(x) for x in elements],
+    )

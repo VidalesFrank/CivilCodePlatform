@@ -16,10 +16,7 @@ export class ApiError extends Error {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
-export async function api<T = unknown>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
+export async function api<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
   const url = path.startsWith('http') ? path : `${API_BASE}${path}`
   const headers = new Headers(init.headers)
   if (init.body && !headers.has('Content-Type')) {
@@ -164,6 +161,41 @@ export interface BuildingDetail extends Building {
   revisions: BuildingRevision[]
 }
 
+// --- Geometría de revisión (para visor 3D) ---
+
+export interface GeomLevel {
+  id: string
+  name: string
+  elevation: number
+  height: number | null
+}
+
+export interface GeomNode {
+  id: string
+  tag: string
+  x: number
+  y: number
+  z: number
+  level_id: string | null
+}
+
+export interface GeomElement {
+  id: string
+  tag: string
+  kind: string
+  level_id: string | null
+  section_id: string | null
+  node_i_id: string | null
+  node_j_id: string | null
+  properties: Record<string, unknown>
+}
+
+export interface RevisionGeometry {
+  levels: GeomLevel[]
+  nodes: GeomNode[]
+  elements: GeomElement[]
+}
+
 export const buildings = {
   listByProject: (projectId: string) =>
     api<Building[]>(`/api/v1/buildings?project_id=${projectId}`),
@@ -187,8 +219,9 @@ export const buildings = {
     return body as BuildingRevision
   },
   dispatchImport: (buildingId: string, revisionId: string) =>
-    api<BuildingRevision>(
-      `/api/v1/buildings/${buildingId}/revisions/${revisionId}/import`,
-      { method: 'POST' },
-    ),
+    api<BuildingRevision>(`/api/v1/buildings/${buildingId}/revisions/${revisionId}/import`, {
+      method: 'POST',
+    }),
+  getGeometry: (buildingId: string, revisionId: string) =>
+    api<RevisionGeometry>(`/api/v1/buildings/${buildingId}/revisions/${revisionId}/geometry`),
 }

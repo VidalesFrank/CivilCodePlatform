@@ -1,6 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { ModelViewer3D } from '@/components/building/ModelViewer3D'
+import {
+  ApiError,
+  type Building,
+  type BuildingDetail,
+  type BuildingRevision,
+  type RevisionGeometry,
+  buildings as buildingsApi,
+} from '@/lib/api'
+import { CubeIcon, DxfIcon } from '@civilcode/icons'
 import {
   Badge,
   Button,
@@ -17,14 +26,7 @@ import {
   Label,
   Skeleton,
 } from '@civilcode/ui'
-import { CubeIcon, DxfIcon } from '@civilcode/icons'
-import {
-  ApiError,
-  buildings as buildingsApi,
-  type Building,
-  type BuildingDetail,
-  type BuildingRevision,
-} from '@/lib/api'
+import { useEffect, useRef, useState } from 'react'
 
 export function BuildingsPanel({ projectId }: { projectId: string }) {
   const [list, setList] = useState<Building[]>([])
@@ -277,8 +279,12 @@ function RevisionRow({
 }) {
   const [working, setWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const [geometry, setGeometry] = useState<RevisionGeometry | null>(null)
+  const [loadingGeom, setLoadingGeom] = useState(false)
 
   const canImport = revision.status === 'draft' || revision.status === 'invalid'
+  const canView = revision.status === 'imported'
 
   async function onImport() {
     setWorking(true)
@@ -290,6 +296,27 @@ function RevisionRow({
       setError(err instanceof ApiError ? err.message : 'Error de red')
     } finally {
       setWorking(false)
+    }
+  }
+
+  async function toggleViewer() {
+    if (viewerOpen) {
+      setViewerOpen(false)
+      return
+    }
+    setViewerOpen(true)
+    if (!geometry) {
+      setLoadingGeom(true)
+      setError(null)
+      try {
+        const g = await buildingsApi.getGeometry(buildingId, revision.id)
+        setGeometry(g)
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Error cargando geometría')
+        setViewerOpen(false)
+      } finally {
+        setLoadingGeom(false)
+      }
     }
   }
 
@@ -325,12 +352,27 @@ function RevisionRow({
               Importar
             </Button>
           )}
+          {canView && (
+            <Button
+              size="sm"
+              variant={viewerOpen ? 'ghost' : 'secondary'}
+              onClick={toggleViewer}
+              loading={loadingGeom}
+            >
+              {viewerOpen ? 'Ocultar 3D' : 'Ver 3D'}
+            </Button>
+          )}
         </div>
       </div>
       {error && (
         <p className="mt-2 rounded-md bg-cc-danger-100 px-2 py-1 text-cc-danger-600 text-xs">
           {error}
         </p>
+      )}
+      {viewerOpen && geometry && (
+        <div className="mt-3">
+          <ModelViewer3D geometry={geometry} />
+        </div>
       )}
     </li>
   )
