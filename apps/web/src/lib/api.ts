@@ -341,4 +341,5 @@ export const designs = {
     }),
   get: (designId: string) => api<BeamDesign>(`/api/v1/beam-designs/${designId}`),
   dxfUrl: (designId: string) => `${API_BASE}/api/v1/beam-designs/${designId}/export/dxf`,
+  pdfUrl: (designId: string) => `${API_BASE}/api/v1/beam-designs/${designId}/export/pdf`,
 }

@@ -342,7 +342,15 @@ function DesignItem({ design }: { design: BeamDesign }) {
                 href={designsApi.dxfUrl(design.id)}
                 className="inline-flex h-7 items-center rounded-md border border-cc-gray-200 px-3 text-xs font-medium text-cc-gray-700 hover:bg-cc-gray-50 dark:border-cc-navy-700 dark:text-cc-gray-200 dark:hover:bg-cc-navy-800"
               >
-                Descargar DXF
+                DXF
+              </a>
+            )}
+            {canExpand && (
+              <a
+                href={designsApi.pdfUrl(design.id)}
+                className="inline-flex h-7 items-center rounded-md border border-cc-gray-200 px-3 text-xs font-medium text-cc-gray-700 hover:bg-cc-gray-50 dark:border-cc-navy-700 dark:text-cc-gray-200 dark:hover:bg-cc-navy-800"
+              >
+                PDF
               </a>
             )}
             {canExpand && (

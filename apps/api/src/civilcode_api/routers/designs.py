@@ -19,6 +19,7 @@ from ..schemas.design import (
     CreateDesignByLevelRequest,
 )
 from ..services.dxf_export import generate_beam_design_dxf
+from ..services.pdf_report import generate_beam_design_pdf
 from ..tasks import dispatch_beam_design
 
 router = APIRouter(tags=["designs"])
@@ -233,5 +234,27 @@ async def export_beam_design_dxf(
     return Response(
         content=dxf_bytes,
         media_type="application/dxf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/beam-designs/{design_id}/export/pdf")
+async def export_beam_design_pdf(
+    design_id: UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    design = await _load_design_with_access(db, user.id, design_id)
+    if not design.status.startswith("completed"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Diseño en estado '{design.status}'. Debe estar completed para exportar.",
+        )
+    payload = {"name": design.name, "config": design.config}
+    pdf_bytes = generate_beam_design_pdf(payload, design.result_summary or {})
+    filename = f"memoria-{design.name.replace(' ', '_')[:40]}-{design.id.hex[:8]}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
