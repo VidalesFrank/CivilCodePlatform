@@ -1,17 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { ApiError, type UserPublic, auth } from '@/lib/api'
+import { Button, Card, CardContent, CardTitle, Input, Label, Skeleton } from '@civilcode/ui'
 import { useRouter } from 'next/navigation'
-import {
-  Button,
-  Card,
-  CardContent,
-  CardTitle,
-  Input,
-  Label,
-  Skeleton,
-} from '@civilcode/ui'
-import { ApiError, auth, type UserPublic } from '@/lib/api'
+import { useEffect, useState } from 'react'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -80,8 +72,8 @@ export default function ProfilePage() {
                 <p
                   className={
                     message.kind === 'ok'
-                      ? 'rounded-md bg-cc-success-50 px-3 py-2 text-cc-success-700 text-sm'
-                      : 'rounded-md bg-cc-danger-100 px-3 py-2 text-cc-danger-600 text-sm'
+                      ? 'rounded-md bg-cc-success-100 px-3 py-2 text-cc-success-600 text-sm dark:bg-cc-success-500/20 dark:text-cc-success-500'
+                      : 'rounded-md bg-cc-danger-100 px-3 py-2 text-cc-danger-600 text-sm dark:bg-cc-danger-500/20 dark:text-cc-danger-500'
                   }
                 >
                   {message.text}

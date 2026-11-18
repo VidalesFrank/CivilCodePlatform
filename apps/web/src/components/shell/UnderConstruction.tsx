@@ -1,6 +1,6 @@
-import type { ComponentType } from 'react'
-import { Badge, Card, CardContent, CardDescription, CardTitle } from '@civilcode/ui'
 import type { IconProps } from '@civilcode/icons'
+import { Badge, Card, CardContent, CardDescription, CardTitle } from '@civilcode/ui'
+import type { ComponentType } from 'react'
 
 interface Props {
   title: string

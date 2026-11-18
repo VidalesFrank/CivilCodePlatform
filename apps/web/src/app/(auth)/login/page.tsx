@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from '@civilcode/ui'
 import { ApiError, auth } from '@/lib/api'
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from '@civilcode/ui'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export default function LoginPage() {
   const router = useRouter()

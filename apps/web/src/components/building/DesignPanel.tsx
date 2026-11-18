@@ -8,7 +8,7 @@ import {
   buildings as buildingsApi,
   designs as designsApi,
 } from '@/lib/api'
-import { Badge, Button, Card, CardContent, Input, Label } from '@civilcode/ui'
+import { Badge, Button, Card, CardContent, Input, Label, Select } from '@civilcode/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const DEFAULT_CONFIG: BeamDesignConfig = {
@@ -176,13 +176,13 @@ export function DesignPanel({
           {/* Config + nivel */}
           <div className="rounded-md border border-cc-gray-200 bg-cc-gray-50 p-3 dark:border-cc-navy-700 dark:bg-cc-navy-800/50">
             <div className="flex flex-wrap items-end gap-3">
-              <div>
+              <div className="min-w-[14rem]">
                 <Label htmlFor="level-sel">Nivel a diseñar</Label>
-                <select
+                <Select
                   id="level-sel"
                   value={selectedLevelId}
                   onChange={(e) => setSelectedLevelId(e.target.value)}
-                  className="mt-1 h-9 rounded-md border border-cc-gray-200 bg-white px-2 text-sm dark:border-cc-navy-700 dark:bg-cc-navy-900"
+                  className="mt-1"
                 >
                   <option value="">—</option>
                   {levels.map((l) => (
@@ -190,7 +190,7 @@ export function DesignPanel({
                       {l.name} (elev {l.elevation.toFixed(2)} m)
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <Button
                 size="sm"
@@ -238,7 +238,7 @@ export function DesignPanel({
                 />
                 <div>
                   <Label htmlFor="duct-sel">Ductilidad</Label>
-                  <select
+                  <Select
                     id="duct-sel"
                     value={config.ductility}
                     onChange={(e) =>
@@ -247,12 +247,12 @@ export function DesignPanel({
                         ductility: e.target.value as BeamDesignConfig['ductility'],
                       })
                     }
-                    className="mt-1 h-9 w-full rounded-md border border-cc-gray-200 bg-white px-2 text-sm dark:border-cc-navy-700 dark:bg-cc-navy-900"
+                    className="mt-1"
                   >
                     <option value="DMO">DMO</option>
                     <option value="DES">DES</option>
                     <option value="Ninguna">Ninguna</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
             )}
@@ -429,9 +429,7 @@ function DesignSummaryView({ summary }: { summary: DesignSummary }) {
                 <td className="px-2 py-1 text-right">
                   {e.capacity?.phi_mn_centro_kNm?.toFixed(2) ?? '—'}
                 </td>
-                <td className="px-2 py-1 text-right">
-                  {e.shear?.vu_at_d_kN?.toFixed(2) ?? '—'}
-                </td>
+                <td className="px-2 py-1 text-right">{e.shear?.vu_at_d_kN?.toFixed(2) ?? '—'}</td>
                 <td className="px-2 py-1 font-mono">
                   {e.shear
                     ? e.shear.needs_stirrups

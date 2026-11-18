@@ -1,5 +1,5 @@
-import { ColumnIcon } from '@civilcode/icons'
 import { UnderConstruction } from '@/components/shell/UnderConstruction'
+import { ColumnIcon } from '@civilcode/icons'
 
 export default function ColumnsPage() {
   return (

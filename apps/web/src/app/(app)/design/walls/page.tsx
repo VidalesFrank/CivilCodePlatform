@@ -1,5 +1,5 @@
-import { WallIcon } from '@civilcode/icons'
 import { UnderConstruction } from '@/components/shell/UnderConstruction'
+import { WallIcon } from '@civilcode/icons'
 
 export default function WallsPage() {
   return (

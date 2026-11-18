@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { type Project, type UserPublic, auth, projects as projectsApi } from '@/lib/api'
+import { SheetIcon } from '@civilcode/icons'
 import {
   Badge,
   Button,
@@ -12,7 +11,9 @@ import {
   CardTitle,
   Skeleton,
 } from '@civilcode/ui'
-import { auth, projects as projectsApi, type Project, type UserPublic } from '@/lib/api'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -30,42 +31,16 @@ export default function DashboardPage() {
       .finally(() => setLoading(false))
   }, [router])
 
-  async function onLogout() {
-    await auth.logout()
-    router.push('/login')
-  }
-
   return (
-    <div className="mx-auto max-w-6xl p-8">
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <p className="text-cc-gray-500 text-sm">Buen día,</p>
-          <h1 className="font-bold text-3xl text-cc-gray-900 dark:text-white">
-            {loading ? (
-              <Skeleton className="h-9 w-48" />
-            ) : (
-              (user?.full_name ?? 'Ingeniero')
-            )}
-          </h1>
-        </div>
-        <Button variant="outline" onClick={onLogout}>
-          Cerrar sesión
-        </Button>
+    <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 sm:mb-8">
+        <p className="text-cc-gray-500 text-sm">Buen día,</p>
+        <h1 className="font-bold text-2xl text-cc-gray-900 sm:text-3xl dark:text-white">
+          {loading ? <Skeleton className="h-9 w-48" /> : (user?.full_name ?? 'Ingeniero')}
+        </h1>
       </div>
 
-      <Card className="mb-8">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-3">
-            <Badge variant="info">Fase 1</Badge>
-            <p className="text-cc-gray-600 text-sm dark:text-cc-gray-300">
-              CivilCode Studio está en construcción. Ya puedes crear proyectos; importación
-              ETABS y visor 3D llegan en los próximos hitos.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="pt-6">
             <CardTitle className="text-base">Proyectos</CardTitle>
@@ -83,29 +58,66 @@ export default function DashboardPage() {
           <CardContent className="pt-6">
             <CardTitle className="text-base">Jobs en ejecución</CardTitle>
             <CardDescription className="mt-1">—</CardDescription>
+            <p className="mt-4 text-cc-gray-400 text-xs">Próximamente.</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <CardTitle className="text-base">Documentos aprobados</CardTitle>
+            <CardTitle className="text-base">Documentos</CardTitle>
             <CardDescription className="mt-1">—</CardDescription>
+            <p className="mt-4 text-cc-gray-400 text-xs">Próximamente.</p>
           </CardContent>
         </Card>
       </div>
 
-      {!loading && projects.length > 0 && (
-        <div className="mt-10">
-          <h2 className="mb-3 font-semibold text-cc-gray-900 text-lg dark:text-white">
+      <div className="mt-8 sm:mt-10">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-semibold text-cc-gray-900 text-lg dark:text-white">
             Proyectos recientes
           </h2>
+          {!loading && projects.length > 0 && (
+            <Link
+              href="/projects"
+              className="text-cc-blue-600 text-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 focus-visible:ring-offset-1 rounded"
+            >
+              Ver todos →
+            </Link>
+          )}
+        </div>
+        {loading ? (
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-28 w-full" />
+            ))}
+          </div>
+        ) : projects.length === 0 ? (
+          <Card>
+            <CardContent className="py-10 text-center">
+              <SheetIcon size={40} className="mx-auto mb-3 text-cc-gray-400" />
+              <CardTitle className="text-base">Aún no tienes proyectos</CardTitle>
+              <CardDescription className="mt-1">
+                Crea el primero para comenzar a importar modelos y diseñar vigas.
+              </CardDescription>
+              <Link href="/projects">
+                <Button variant="primary" size="sm" className="mt-4">
+                  Crear proyecto
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {projects.slice(0, 6).map((p) => (
-              <Link key={p.id} href={`/projects/${p.id}`}>
-                <Card className="transition-shadow hover:shadow-md">
+              <Link
+                key={p.id}
+                href={`/projects/${p.id}`}
+                className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 focus-visible:ring-offset-1 rounded-lg"
+              >
+                <Card className="h-full transition-shadow hover:shadow-md">
                   <CardContent className="pt-6">
                     <Badge variant="info">{p.code}</Badge>
                     <CardTitle className="mt-2 text-base">{p.name}</CardTitle>
-                    <CardDescription className="mt-1">
+                    <CardDescription className="mt-1 line-clamp-2">
                       {p.client ?? 'Sin cliente'}
                     </CardDescription>
                   </CardContent>
@@ -113,8 +125,8 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

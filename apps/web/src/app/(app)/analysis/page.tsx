@@ -1,5 +1,5 @@
-import { MomentIcon } from '@civilcode/icons'
 import { UnderConstruction } from '@/components/shell/UnderConstruction'
+import { MomentIcon } from '@civilcode/icons'
 
 export default function AnalysisPage() {
   return (

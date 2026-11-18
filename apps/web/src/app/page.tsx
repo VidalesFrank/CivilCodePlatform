@@ -1,6 +1,6 @@
-import Link from 'next/link'
+import { BeamIcon, ColumnIcon, SheetIcon, WallIcon } from '@civilcode/icons'
 import { Button, Card, CardContent, CardDescription, CardTitle } from '@civilcode/ui'
-import { BeamIcon, ColumnIcon, WallIcon, SheetIcon } from '@civilcode/icons'
+import Link from 'next/link'
 
 export default function LandingPage() {
   return (
@@ -21,9 +21,9 @@ export default function LandingPage() {
             </span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-cc-gray-300">
-            Importa tu modelo de ETABS, visualízalo en 3D, diseña tus elementos bajo NSR-10,
-            genera planos y memorias, y comparte el proyecto con tus clientes y constructores
-            desde un único espacio profesional.
+            Importa tu modelo de ETABS, visualízalo en 3D, diseña tus elementos bajo NSR-10, genera
+            planos y memorias, y comparte el proyecto con tus clientes y constructores desde un
+            único espacio profesional.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
             <Link href="/login">
@@ -32,7 +32,11 @@ export default function LandingPage() {
               </Button>
             </Link>
             <Link href="/register">
-              <Button size="lg" variant="outline" className="border-cc-navy-700 text-white hover:bg-cc-navy-800">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-cc-navy-700 text-white hover:bg-cc-navy-800"
+              >
                 Crear cuenta
               </Button>
             </Link>

@@ -1,6 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import {
+  ApiError,
+  type Member,
+  type OrganizationWithRole,
+  organizations as orgsApi,
+} from '@/lib/api'
 import {
   Badge,
   Card,
@@ -14,12 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@civilcode/ui'
-import {
-  ApiError,
-  organizations as orgsApi,
-  type Member,
-  type OrganizationWithRole,
-} from '@/lib/api'
+import { useEffect, useState } from 'react'
 
 export default function OrganizationSettingsPage() {
   const [orgs, setOrgs] = useState<OrganizationWithRole[]>([])
@@ -35,9 +35,7 @@ export default function OrganizationSettingsPage() {
         setOrgs(list)
         if (list.length > 0) setSelected(list[0])
       })
-      .catch((err: unknown) =>
-        setError(err instanceof ApiError ? err.message : 'Error de red'),
-      )
+      .catch((err: unknown) => setError(err instanceof ApiError ? err.message : 'Error de red'))
       .finally(() => setLoading(false))
   }, [])
 
@@ -47,9 +45,7 @@ export default function OrganizationSettingsPage() {
     orgsApi
       .members(selected.id)
       .then(setMembers)
-      .catch((err: unknown) =>
-        setError(err instanceof ApiError ? err.message : 'Error de red'),
-      )
+      .catch((err: unknown) => setError(err instanceof ApiError ? err.message : 'Error de red'))
   }, [selected])
 
   if (loading) {

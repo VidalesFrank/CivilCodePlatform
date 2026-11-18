@@ -1,6 +1,6 @@
-import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardTitle } from '@civilcode/ui'
 import { BeamIcon } from '@civilcode/icons'
+import { Card, CardContent, CardDescription, CardTitle } from '@civilcode/ui'
+import Link from 'next/link'
 
 export default function BeamsPage() {
   return (
@@ -26,16 +26,22 @@ export default function BeamsPage() {
             </p>
             <ol className="ml-5 list-decimal space-y-1">
               <li>
-                Ve a tu <Link href="/projects" className="text-cc-blue-600 hover:underline">proyecto</Link>.
+                Ve a tu{' '}
+                <Link href="/projects" className="text-cc-blue-600 hover:underline">
+                  proyecto
+                </Link>
+                .
               </li>
-              <li>Tab <strong>Modelo 3D</strong> → despliega un edificio → ver sus revisiones.</li>
+              <li>
+                Tab <strong>Modelo 3D</strong> → despliega un edificio → ver sus revisiones.
+              </li>
               <li>
                 Sobre una revisión con estado <strong>imported</strong>, click en{' '}
                 <em>&ldquo;Diseñar vigas&rdquo;</em>.
               </li>
               <li>
-                Selecciona el nivel, ajusta parámetros (f&rsquo;c, fy, recubrimiento, CV, CM
-                extra), y click <strong>Diseñar vigas del nivel</strong>.
+                Selecciona el nivel, ajusta parámetros (f&rsquo;c, fy, recubrimiento, CV, CM extra),
+                y click <strong>Diseñar vigas del nivel</strong>.
               </li>
               <li>
                 Expande el diseño completado para ver la tabla; descarga <strong>DXF</strong>{' '}
@@ -43,9 +49,9 @@ export default function BeamsPage() {
               </li>
             </ol>
             <p className="mt-2 text-xs italic text-cc-gray-500">
-              Limitaciones actuales: Mu asumido como w·L²/10 (apoyo) y w·L²/14 (centro) sin
-              envelope de análisis real. Solo flexión + cortante; sin despiece longitudinal con
-              traslapos ni anclajes.
+              Limitaciones actuales: Mu asumido como w·L²/10 (apoyo) y w·L²/14 (centro) sin envelope
+              de análisis real. Solo flexión + cortante; sin despiece longitudinal con traslapos ni
+              anclajes.
             </p>
           </CardDescription>
         </CardContent>

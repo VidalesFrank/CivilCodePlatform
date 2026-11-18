@@ -7,46 +7,46 @@
 
 @theme {
   /* --- Primarios --- */
-  --color-cc-navy-950: #060E1F;
-  --color-cc-navy-900: #0B1E3F;
-  --color-cc-navy-800: #122A54;
-  --color-cc-navy-700: #1A3A70;
-  --color-cc-navy-600: #244A8E;
+  --color-cc-navy-950: #060e1f;
+  --color-cc-navy-900: #0b1e3f;
+  --color-cc-navy-800: #122a54;
+  --color-cc-navy-700: #1a3a70;
+  --color-cc-navy-600: #244a8e;
 
-  --color-cc-blue-700: #1858C7;
-  --color-cc-blue-600: #1E6FE8;
-  --color-cc-blue-500: #2E82FA;
-  --color-cc-blue-400: #5AA0FF;
+  --color-cc-blue-700: #1858c7;
+  --color-cc-blue-600: #1e6fe8;
+  --color-cc-blue-500: #2e82fa;
+  --color-cc-blue-400: #5aa0ff;
 
-  --color-cc-cyan-600: #0098BD;
-  --color-cc-cyan-500: #00B8E0;
-  --color-cc-cyan-400: #4DD0F0;
-  --color-cc-cyan-300: #6DE0F5;
+  --color-cc-cyan-600: #0098bd;
+  --color-cc-cyan-500: #00b8e0;
+  --color-cc-cyan-400: #4dd0f0;
+  --color-cc-cyan-300: #6de0f5;
 
   /* --- Neutrales --- */
-  --color-cc-gray-50: #F7F9FC;
-  --color-cc-gray-100: #ECF1F7;
-  --color-cc-gray-200: #DAE2EE;
-  --color-cc-gray-300: #BDC9D9;
-  --color-cc-gray-400: #94A3B8;
-  --color-cc-gray-500: #64748B;
+  --color-cc-gray-50: #f7f9fc;
+  --color-cc-gray-100: #ecf1f7;
+  --color-cc-gray-200: #dae2ee;
+  --color-cc-gray-300: #bdc9d9;
+  --color-cc-gray-400: #94a3b8;
+  --color-cc-gray-500: #64748b;
   --color-cc-gray-700: #334155;
-  --color-cc-gray-900: #0F1724;
+  --color-cc-gray-900: #0f1724;
 
   /* --- Semánticos (estados de diseño estructural) --- */
   --color-cc-success-600: #059669;
-  --color-cc-success-500: #10B981;
-  --color-cc-success-100: #D1FAE5;
+  --color-cc-success-500: #10b981;
+  --color-cc-success-100: #d1fae5;
 
-  --color-cc-warn-600: #D97706;
-  --color-cc-warn-500: #F59E0B;
-  --color-cc-warn-100: #FEF3C7;
+  --color-cc-warn-600: #d97706;
+  --color-cc-warn-500: #f59e0b;
+  --color-cc-warn-100: #fef3c7;
 
-  --color-cc-danger-600: #DC2626;
-  --color-cc-danger-500: #EF4444;
-  --color-cc-danger-100: #FEE2E2;
+  --color-cc-danger-600: #dc2626;
+  --color-cc-danger-500: #ef4444;
+  --color-cc-danger-100: #fee2e2;
 
-  --color-cc-info-500: #0EA5E9;
+  --color-cc-info-500: #0ea5e9;
 
   /* --- Tipografía --- */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -57,12 +57,15 @@
 @variant dark (&:where(.dark, .dark *));
 
 /* --- Reset + base --- */
-html, body {
+html,
+body {
   @apply bg-cc-gray-50 text-cc-gray-900 antialiased;
 }
 
-.dark html, .dark body,
-html.dark, body.dark {
+.dark html,
+.dark body,
+html.dark,
+body.dark {
   @apply bg-cc-navy-950 text-white;
 }
 

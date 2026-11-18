@@ -133,7 +133,7 @@ function CreateBuildingForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="w-96">
+    <form onSubmit={onSubmit} className="w-[90vw] max-w-[24rem]">
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Nuevo edificio</DialogTitle>

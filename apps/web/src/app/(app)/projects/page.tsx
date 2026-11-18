@@ -1,7 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import {
+  ApiError,
+  type OrganizationWithRole,
+  type Project,
+  organizations as orgsApi,
+  projects as projectsApi,
+} from '@/lib/api'
+import { SheetIcon } from '@civilcode/icons'
 import {
   Badge,
   Button,
@@ -21,16 +27,11 @@ import {
   DropdownMenuTrigger,
   Input,
   Label,
+  Select,
   Skeleton,
 } from '@civilcode/ui'
-import { SheetIcon } from '@civilcode/icons'
-import {
-  ApiError,
-  organizations as orgsApi,
-  projects as projectsApi,
-  type OrganizationWithRole,
-  type Project,
-} from '@/lib/api'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 type ModalState =
   | { kind: 'closed' }
@@ -68,10 +69,12 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-8">
-      <div className="mb-6 flex items-end justify-between">
+    <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-bold text-3xl text-cc-gray-900 dark:text-white">Proyectos</h1>
+          <h1 className="font-bold text-2xl text-cc-gray-900 sm:text-3xl dark:text-white">
+            Proyectos
+          </h1>
           <p className="mt-1 text-cc-gray-500 text-sm">
             Crea, lista y abre los proyectos estructurales de tu organización.
           </p>
@@ -143,16 +146,9 @@ export default function ProjectsPage() {
         )}
       </Dialog>
 
-      <Dialog
-        open={modal.kind === 'delete'}
-        onOpenChange={(open) => !open && close()}
-      >
+      <Dialog open={modal.kind === 'delete'} onOpenChange={(open) => !open && close()}>
         {modal.kind === 'delete' && (
-          <DeleteConfirm
-            project={modal.project}
-            onClose={close}
-            onDeleted={afterChange}
-          />
+          <DeleteConfirm project={modal.project} onClose={close} onDeleted={afterChange} />
         )}
       </Dialog>
     </div>
@@ -262,7 +258,7 @@ function ProjectForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="w-[28rem]">
+    <form onSubmit={onSubmit} className="w-[90vw] max-w-[28rem]">
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'Nuevo proyecto' : 'Editar proyecto'}</DialogTitle>
@@ -272,19 +268,13 @@ function ProjectForm({
           {mode === 'create' && (
             <div className="space-y-2">
               <Label htmlFor="org">Organización</Label>
-              <select
-                id="org"
-                value={orgId}
-                onChange={(e) => setOrgId(e.target.value)}
-                required
-                className="flex h-10 w-full rounded-md border border-cc-gray-200 bg-white px-3 text-cc-gray-900 text-sm shadow-sm dark:border-cc-navy-700 dark:bg-cc-navy-900 dark:text-white"
-              >
+              <Select id="org" value={orgId} onChange={(e) => setOrgId(e.target.value)} required>
                 {organizations.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           )}
 
@@ -313,11 +303,7 @@ function ProjectForm({
 
           <div className="space-y-2">
             <Label htmlFor="client">Cliente</Label>
-            <Input
-              id="client"
-              value={client ?? ''}
-              onChange={(e) => setClient(e.target.value)}
-            />
+            <Input id="client" value={client ?? ''} onChange={(e) => setClient(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="location">Ubicación</Label>
@@ -334,7 +320,7 @@ function ProjectForm({
               rows={3}
               value={description ?? ''}
               onChange={(e) => setDescription(e.target.value)}
-              className="flex w-full rounded-md border border-cc-gray-200 bg-white px-3 py-2 text-cc-gray-900 text-sm shadow-sm dark:border-cc-navy-700 dark:bg-cc-navy-900 dark:text-white"
+              className="flex w-full rounded-md border border-cc-gray-200 bg-white px-3 py-2 text-cc-gray-900 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 focus-visible:ring-offset-1 dark:border-cc-navy-700 dark:bg-cc-navy-900 dark:text-white"
             />
           </div>
         </div>
@@ -383,13 +369,13 @@ function DeleteConfirm({
   }
 
   return (
-    <div className="w-96">
+    <div className="w-[90vw] max-w-[24rem]">
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Eliminar proyecto</DialogTitle>
           <DialogDescription>
-            Vas a eliminar <strong>{project.name}</strong> ({project.code}) y todos sus
-            edificios, revisiones y archivos asociados. Esta acción no se puede deshacer.
+            Vas a eliminar <strong>{project.name}</strong> ({project.code}) y todos sus edificios,
+            revisiones y archivos asociados. Esta acción no se puede deshacer.
           </DialogDescription>
         </DialogHeader>
         {error && (

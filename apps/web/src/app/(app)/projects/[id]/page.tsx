@@ -1,7 +1,8 @@
 'use client'
 
-import { use, useEffect, useState } from 'react'
-import Link from 'next/link'
+import { BuildingsPanel } from '@/components/project/BuildingsPanel'
+import { ApiError, type Project, projects as projectsApi } from '@/lib/api'
+import { BeamIcon, ColumnIcon, SheetIcon, WallIcon } from '@civilcode/icons'
 import {
   Badge,
   Card,
@@ -9,12 +10,23 @@ import {
   CardDescription,
   CardTitle,
   Skeleton,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from '@civilcode/ui'
-import { BeamIcon, ColumnIcon, SheetIcon, WallIcon } from '@civilcode/icons'
-import { ApiError, projects as projectsApi, type Project } from '@/lib/api'
-import { BuildingsPanel } from '@/components/project/BuildingsPanel'
+import Link from 'next/link'
+import { use, useEffect, useState } from 'react'
 
 type Tab = 'overview' | 'model' | 'analysis' | 'design' | 'documents'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'overview', label: 'Resumen' },
+  { id: 'model', label: 'Modelo 3D' },
+  { id: 'analysis', label: 'Análisis' },
+  { id: 'design', label: 'Diseño' },
+  { id: 'documents', label: 'Documentos' },
+]
 
 export default function ProjectDetailPage({
   params,
@@ -25,21 +37,18 @@ export default function ProjectDetailPage({
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<Tab>('overview')
 
   useEffect(() => {
     projectsApi
       .get(id)
       .then(setProject)
-      .catch((err: unknown) =>
-        setError(err instanceof ApiError ? err.message : 'Error de red'),
-      )
+      .catch((err: unknown) => setError(err instanceof ApiError ? err.message : 'Error de red'))
       .finally(() => setLoading(false))
   }, [id])
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl p-8">
+      <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
         <Skeleton className="mb-4 h-10 w-64" />
         <Skeleton className="h-48 w-full" />
       </div>
@@ -48,7 +57,7 @@ export default function ProjectDetailPage({
 
   if (error || !project) {
     return (
-      <div className="mx-auto max-w-6xl p-8">
+      <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
         <p className="text-cc-danger-600">{error ?? 'Proyecto no encontrado'}</p>
         <Link href="/projects" className="text-cc-blue-600 text-sm hover:underline">
           Volver a proyectos
@@ -58,17 +67,19 @@ export default function ProjectDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-8">
+    <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <Link
-          href="/projects"
-          className="text-cc-blue-600 text-sm hover:underline"
-        >
-          ← Proyectos
-        </Link>
-        <div className="mt-2 flex items-center gap-3">
+        <nav aria-label="Breadcrumb" className="mb-2 text-sm">
+          <Link
+            href="/projects"
+            className="text-cc-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 focus-visible:ring-offset-1"
+          >
+            ← Proyectos
+          </Link>
+        </nav>
+        <div className="flex flex-wrap items-center gap-3">
           <Badge variant="info">{project.code}</Badge>
-          <h1 className="font-bold text-3xl text-cc-gray-900 dark:text-white">
+          <h1 className="font-bold text-2xl text-cc-gray-900 sm:text-3xl dark:text-white">
             {project.name}
           </h1>
         </div>
@@ -77,39 +88,34 @@ export default function ProjectDetailPage({
         </p>
       </div>
 
-      <nav className="mb-6 flex gap-1 border-cc-gray-200 border-b dark:border-cc-navy-700">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setActiveTab(t.id)}
-            className={
-              activeTab === t.id
-                ? 'border-cc-blue-600 border-b-2 px-4 py-2 font-medium text-cc-blue-600 text-sm'
-                : 'border-transparent border-b-2 px-4 py-2 font-medium text-cc-gray-500 text-sm hover:text-cc-gray-700 dark:hover:text-cc-gray-300'
-            }
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
+      <Tabs defaultValue="overview" className="mb-4">
+        <TabsList className="overflow-x-auto">
+          {TABS.map((t) => (
+            <TabsTrigger key={t.id} value={t.id}>
+              {t.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-      {activeTab === 'overview' && <OverviewTab project={project} />}
-      {activeTab === 'model' && <BuildingsPanel projectId={project.id} />}
-      {activeTab === 'analysis' && <PlaceholderTab title="Análisis" phase="Fase 2" />}
-      {activeTab === 'design' && <DesignTab />}
-      {activeTab === 'documents' && <PlaceholderTab title="Documentos" phase="Fase 4-6" />}
+        <TabsContent value="overview">
+          <OverviewTab project={project} />
+        </TabsContent>
+        <TabsContent value="model">
+          <BuildingsPanel projectId={project.id} />
+        </TabsContent>
+        <TabsContent value="analysis">
+          <PlaceholderTab title="Análisis" phase="Fase 2" />
+        </TabsContent>
+        <TabsContent value="design">
+          <DesignTab />
+        </TabsContent>
+        <TabsContent value="documents">
+          <PlaceholderTab title="Documentos" phase="Fase 4-6" />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview', label: 'Resumen' },
-  { id: 'model', label: 'Modelo 3D' },
-  { id: 'analysis', label: 'Análisis' },
-  { id: 'design', label: 'Diseño' },
-  { id: 'documents', label: 'Documentos' },
-]
 
 function OverviewTab({ project }: { project: Project }) {
   return (
@@ -167,7 +173,11 @@ function DesignTab() {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {MODULES.map(({ href, label, Icon, phase }) => (
-        <Link key={href} href={href}>
+        <Link
+          key={href}
+          href={href}
+          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 focus-visible:ring-offset-1 rounded-lg"
+        >
           <Card className="transition-shadow hover:shadow-md">
             <CardContent className="pt-6">
               <Icon size={28} className="mb-3 text-cc-blue-600" />
