@@ -40,6 +40,23 @@ type DesignElementResult = {
     phi_mn_apoyo_kNm: number
     phi_mn_centro_kNm: number
   }
+  shear?: {
+    vu_support_kN: number
+    vu_at_d_kN: number
+    vc_kN: number
+    phi_vc_kN: number
+    needs_stirrups: boolean
+    vs_req_kN: number
+    stirrup: {
+      bar: string
+      av_cm2: number
+      s_gen_cm: number
+      s_conf_cm: number
+      l_conf_cm: number
+      phi_vn_kN: number
+      ok: boolean
+    }
+  }
   warnings: string[]
   error?: string
 }
@@ -363,6 +380,9 @@ function DesignSummaryView({ summary }: { summary: DesignSummary }) {
               <th className="px-2 py-2 text-right font-normal">φMn⁻ (kNm)</th>
               <th className="px-2 py-2 text-left font-normal">Barra centro</th>
               <th className="px-2 py-2 text-right font-normal">φMn+ (kNm)</th>
+              <th className="px-2 py-2 text-right font-normal">Vu (kN)</th>
+              <th className="px-2 py-2 text-left font-normal">Estribos</th>
+              <th className="px-2 py-2 text-right font-normal">φVn (kN)</th>
               <th className="px-2 py-2 text-center font-normal">Check</th>
             </tr>
           </thead>
@@ -390,6 +410,19 @@ function DesignSummaryView({ summary }: { summary: DesignSummary }) {
                 </td>
                 <td className="px-2 py-1 text-right">
                   {e.capacity?.phi_mn_centro_kNm?.toFixed(2) ?? '—'}
+                </td>
+                <td className="px-2 py-1 text-right">
+                  {e.shear?.vu_at_d_kN?.toFixed(2) ?? '—'}
+                </td>
+                <td className="px-2 py-1 font-mono">
+                  {e.shear
+                    ? e.shear.needs_stirrups
+                      ? `E${e.shear.stirrup.bar} @ ${e.shear.stirrup.s_gen_cm}cm (conf ${e.shear.stirrup.s_conf_cm}cm × ${e.shear.stirrup.l_conf_cm}cm)`
+                      : `E${e.shear.stirrup.bar} min`
+                    : '—'}
+                </td>
+                <td className="px-2 py-1 text-right">
+                  {e.shear?.stirrup?.phi_vn_kN?.toFixed(2) ?? '—'}
                 </td>
                 <td className="px-2 py-1 text-center">
                   {e.ok ? (

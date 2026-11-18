@@ -150,6 +150,114 @@ def _phi_mn_kNm(as_cm2: float, fc_mpa: float, fy_mpa: float, b_cm: float, d_cm: 
     return 0.90 * mn_kNcm / 100.0  # a kN·m
 
 
+# ── Cortante / estribos ──────────────────────────────────────────────────────
+#
+# NSR-10 simplificado (C.22.5):
+#   φVn = φ (Vc + Vs)
+#   φ = 0.75 (C.9.3.2.3)
+#   Vc = 0.17 * sqrt(fc[MPa]) * b * d  [N] (concreto sin axial)
+#   Vs_req = Vu / φ − Vc
+#   s = Av · fy · d / Vs    (estribo de dos ramas → Av = 2 · a_bar)
+#   Max spacing: d/2 (general); d/4 en zona confinada DMO (2h desde apoyo)
+#   Min stirrup: #3 @ max(d/2, 300mm) si Vu ≤ φVc/2 no es obligatorio pero se usa
+# Unidades que uso aquí: fc/fy en MPa, b/d en cm, V en kN.
+# Vc [kN] = 0.17 * sqrt(fc[MPa]) * (b_cm * d_cm / 100)  (porque N→kN y mm²→cm²·100)
+# Lo expreso explícitamente abajo.
+
+STIRRUP_BARS = [("#3", 9.52), ("#4", 12.7)]  # típico en vigas
+
+
+def _vc_kN(fc_mpa: float, b_cm: float, d_cm: float) -> float:
+    # Vc = 0.17 * sqrt(fc) [MPa] * b * d [mm²]  → en N
+    # b_cm → mm: *10; d_cm → mm: *10; resultado en N → kN: /1000
+    b_mm = b_cm * 10.0
+    d_mm = d_cm * 10.0
+    vc_N = 0.17 * math.sqrt(fc_mpa) * b_mm * d_mm
+    return vc_N / 1000.0
+
+
+def _max_stirrup_spacing_cm(d_cm: float, vs_kN: float, fc_mpa: float, b_cm: float) -> float:
+    """s_max NSR-10 C.9.7.6.2.2 (general) y C.21.5.3.2 (zona confinada DMO)."""
+    # Umbral para duplicar: Vs ≤ 0.33*sqrt(fc)*b*d  → s_max = d/2; else d/4
+    threshold = 0.33 * math.sqrt(fc_mpa) * (b_cm * 10.0) * (d_cm * 10.0) / 1000.0
+    base = d_cm / 2.0 if vs_kN <= threshold else d_cm / 4.0
+    return min(base, 60.0)  # cap pragmático 60 cm
+
+
+def _design_shear(
+    wu_kN_m: float,
+    length_m: float,
+    fc_mpa: float,
+    fy_mpa: float,
+    b_cm: float,
+    d_cm: float,
+    h_cm: float,
+    ductility: str,
+) -> dict:
+    phi = 0.75
+    # Vu máximo a cara de apoyo (viga simplemente apoyada / continua uniforme)
+    vu_support = wu_kN_m * length_m / 2.0  # kN, en apoyo
+    # Reducción: Vu a distancia d del apoyo (NSR-10 permite para carga uniforme)
+    vu_at_d = max(0.0, vu_support - wu_kN_m * d_cm / 100.0)
+
+    vc = _vc_kN(fc_mpa, b_cm, d_cm)
+    phi_vc = phi * vc
+
+    needs_stirrups = vu_at_d > phi_vc / 2.0  # NSR-10 C.9.6.3.1
+    vs_req = max(0.0, vu_at_d / phi - vc)
+
+    # Seleccionar estribo que cumpla con s_max
+    best = None
+    for bar_name, db_mm in STIRRUP_BARS:
+        av = 2.0 * _bar_area_cm2(db_mm)  # dos ramas en cm²
+        fy_kNcm2 = fy_mpa / 10.0
+        s_req = av * fy_kNcm2 * d_cm / vs_req if vs_req > 0 else 100.0
+        s_max_gen = _max_stirrup_spacing_cm(d_cm, vs_req, fc_mpa, b_cm)
+        s_use_gen = min(s_req, s_max_gen)
+        # Zona confinada
+        if ductility == "DES":
+            s_conf_max = min(d_cm / 4.0, 6.0 * (STIRRUP_BARS[0][1] / 10.0), 15.0)
+            l_conf = max(2.0 * h_cm, length_m * 100.0 / 6.0, 45.0)  # cm
+        elif ductility == "DMO":
+            s_conf_max = min(d_cm / 4.0, 8.0 * (STIRRUP_BARS[0][1] / 10.0), 24.0)
+            l_conf = 2.0 * h_cm
+        else:
+            s_conf_max = s_max_gen
+            l_conf = 0.0
+        s_use_conf = min(s_use_gen, s_conf_max)
+        # Vs provisto con el s elegido en zona general
+        vs_prov_kN = av * fy_kNcm2 * d_cm / max(s_use_gen, 0.01) if needs_stirrups else 0.0
+        phi_vn = phi * (vc + vs_prov_kN) if needs_stirrups else phi_vc
+
+        # Redondear s a múltiplos de 2.5 cm para constructibilidad
+        s_use_gen_round = max(5.0, math.floor(s_use_gen / 2.5) * 2.5)
+        s_use_conf_round = max(5.0, math.floor(s_use_conf / 2.5) * 2.5)
+
+        cand = {
+            "bar": bar_name,
+            "db_mm": db_mm,
+            "av_cm2": round(av, 3),
+            "s_gen_cm": round(s_use_gen_round, 1),
+            "s_conf_cm": round(s_use_conf_round, 1),
+            "l_conf_cm": round(l_conf, 1),
+            "phi_vn_kN": round(phi_vn, 2),
+            "ok": phi_vn >= vu_at_d,
+        }
+        if best is None or (cand["ok"] and not best.get("ok")) or (cand["ok"] == best.get("ok") and cand["s_gen_cm"] > best["s_gen_cm"]):
+            best = cand
+
+    best.pop("db_mm", None)
+    return {
+        "vu_support_kN": round(vu_support, 2),
+        "vu_at_d_kN": round(vu_at_d, 2),
+        "vc_kN": round(vc, 2),
+        "phi_vc_kN": round(phi_vc, 2),
+        "needs_stirrups": needs_stirrups,
+        "vs_req_kN": round(vs_req, 2),
+        "stirrup": best,
+    }
+
+
 def _design_single_element(
     db: Session,
     element: Element,
@@ -208,6 +316,10 @@ def _design_single_element(
     phi_mn_apoyo = _phi_mn_kNm(sel_apoyo["as_prov_cm2"], fc, fy, b_cm, d_cm)
     phi_mn_centro = _phi_mn_kNm(sel_centro["as_prov_cm2"], fc, fy, b_cm, d_cm)
 
+    # Cortante y estribos
+    ductility = str(config.get("ductility", "DMO"))
+    shear = _design_shear(wu_kN_m, length_m, fc, fy, b_cm, d_cm, h_cm, ductility)
+
     warnings = []
     if math.isinf(as_req_apoyo) or math.isinf(as_req_centro):
         warnings.append("Sección insuficiente a flexión; aumentar b o h.")
@@ -219,6 +331,10 @@ def _design_single_element(
         warnings.append(f"φMn apoyo ({phi_mn_apoyo:.2f}) < Mu ({mu_apoyo:.2f}). Revisar.")
     if phi_mn_centro < mu_centro:
         warnings.append(f"φMn centro ({phi_mn_centro:.2f}) < Mu ({mu_centro:.2f}). Revisar.")
+    if shear["needs_stirrups"] and not shear["stirrup"]["ok"]:
+        warnings.append(
+            f"φVn ({shear['stirrup']['phi_vn_kN']:.2f}) < Vu ({shear['vu_at_d_kN']:.2f}). Reforzar estribos o aumentar seccion."
+        )
 
     return {
         "element_id": str(element.id),
@@ -251,6 +367,7 @@ def _design_single_element(
             "phi_mn_apoyo_kNm": round(phi_mn_apoyo, 2),
             "phi_mn_centro_kNm": round(phi_mn_centro, 2),
         },
+        "shear": shear,
         "warnings": warnings,
     }
 
