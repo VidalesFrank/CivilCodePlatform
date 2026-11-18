@@ -9,7 +9,7 @@ app = Celery(
     "civilcode_worker",
     broker=BROKER_URL,
     backend=RESULT_BACKEND,
-    include=["civilcode_worker.tasks.demo"],
+    include=["civilcode_worker.tasks.demo", "civilcode_worker.tasks.import_etabs"],
 )
 
 app.conf.update(

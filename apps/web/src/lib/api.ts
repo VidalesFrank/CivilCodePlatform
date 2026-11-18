@@ -186,4 +186,9 @@ export const buildings = {
     }
     return body as BuildingRevision
   },
+  dispatchImport: (buildingId: string, revisionId: string) =>
+    api<BuildingRevision>(
+      `/api/v1/buildings/${buildingId}/revisions/${revisionId}/import`,
+      { method: 'POST' },
+    ),
 }

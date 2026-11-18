@@ -19,6 +19,7 @@ from ..schemas.building import (
     CreateBuildingRequest,
 )
 from ..storage import put_object
+from ..tasks import dispatch_import
 
 router = APIRouter(prefix="/buildings", tags=["buildings"])
 
@@ -163,4 +164,51 @@ async def upload_building_revision(
     building.active_revision_id = revision.id
     await db.commit()
     await db.refresh(revision)
+    return BuildingRevisionPublic.model_validate(revision)
+
+
+@router.post(
+    "/{building_id}/revisions/{revision_id}/import",
+    response_model=BuildingRevisionPublic,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def dispatch_revision_import(
+    building_id: UUID,
+    revision_id: UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> BuildingRevisionPublic:
+    """Encola la task Celery de import para una revisión draft."""
+    from ..auth.membership import _require_membership
+
+    revision = (
+        await db.execute(select(BuildingRevision).where(BuildingRevision.id == revision_id))
+    ).scalar_one_or_none()
+    if revision is None or revision.building_id != building_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Revisión no encontrada")
+
+    building = (
+        await db.execute(select(Building).where(Building.id == building_id))
+    ).scalar_one_or_none()
+    if building is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    project = (
+        await db.execute(select(Project).where(Project.id == building.project_id))
+    ).scalar_one_or_none()
+    if project is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    await _require_membership(db, user.id, project.organization_id)
+
+    if revision.status not in ("draft", "invalid"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"No se puede reimportar una revisión en estado '{revision.status}'",
+        )
+
+    revision.status = "queued"
+    revision.notes = "Encolada para import"
+    await db.commit()
+    await db.refresh(revision)
+
+    await dispatch_import(str(revision_id))
     return BuildingRevisionPublic.model_validate(revision)

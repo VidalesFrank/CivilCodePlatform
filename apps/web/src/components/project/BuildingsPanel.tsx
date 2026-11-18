@@ -247,7 +247,13 @@ function BuildingRow({ building }: { building: Building }) {
             ) : (
               <ul className="space-y-2">
                 {detail.revisions.map((r) => (
-                  <RevisionRow key={r.id} revision={r} isActive={r.id === detail.active_revision_id} />
+                  <RevisionRow
+                    key={r.id}
+                    buildingId={building.id}
+                    revision={r}
+                    isActive={r.id === detail.active_revision_id}
+                    onChanged={loadDetail}
+                  />
                 ))}
               </ul>
             )}
@@ -258,32 +264,74 @@ function BuildingRow({ building }: { building: Building }) {
   )
 }
 
-function RevisionRow({ revision, isActive }: { revision: BuildingRevision; isActive: boolean }) {
+function RevisionRow({
+  buildingId,
+  revision,
+  isActive,
+  onChanged,
+}: {
+  buildingId: string
+  revision: BuildingRevision
+  isActive: boolean
+  onChanged: () => void | Promise<void>
+}) {
+  const [working, setWorking] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const canImport = revision.status === 'draft' || revision.status === 'invalid'
+
+  async function onImport() {
+    setWorking(true)
+    setError(null)
+    try {
+      await buildingsApi.dispatchImport(buildingId, revision.id)
+      await onChanged()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Error de red')
+    } finally {
+      setWorking(false)
+    }
+  }
+
   return (
-    <li className="flex items-center justify-between rounded-md bg-cc-gray-50 px-3 py-2 dark:bg-cc-navy-800/50">
-      <div className="flex items-center gap-3">
-        <DxfIcon size={20} className="text-cc-gray-500" />
-        <div>
-          <p className="font-medium text-cc-gray-900 text-sm dark:text-white">
-            Revisión #{revision.revision_number} · {revision.source}
-          </p>
-          <p className="text-cc-gray-500 text-xs">{revision.notes ?? '—'}</p>
+    <li className="rounded-md bg-cc-gray-50 px-3 py-2 dark:bg-cc-navy-800/50">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <DxfIcon size={20} className="text-cc-gray-500" />
+          <div>
+            <p className="font-medium text-cc-gray-900 text-sm dark:text-white">
+              Revisión #{revision.revision_number} · {revision.source}
+            </p>
+            <p className="text-cc-gray-500 text-xs">{revision.notes ?? '—'}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge
+            variant={
+              revision.status === 'imported'
+                ? 'success'
+                : revision.status === 'invalid'
+                  ? 'danger'
+                  : revision.status === 'queued' || revision.status === 'importing'
+                    ? 'info'
+                    : 'warning'
+            }
+          >
+            {revision.status}
+          </Badge>
+          {isActive && <Badge variant="info">activa</Badge>}
+          {canImport && (
+            <Button size="sm" variant="primary" onClick={onImport} loading={working}>
+              Importar
+            </Button>
+          )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <Badge
-          variant={
-            revision.status === 'imported'
-              ? 'success'
-              : revision.status === 'invalid'
-                ? 'danger'
-                : 'warning'
-          }
-        >
-          {revision.status}
-        </Badge>
-        {isActive && <Badge variant="info">activa</Badge>}
-      </div>
+      {error && (
+        <p className="mt-2 rounded-md bg-cc-danger-100 px-2 py-1 text-cc-danger-600 text-xs">
+          {error}
+        </p>
+      )}
     </li>
   )
 }
