@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +18,7 @@ from ..schemas.design import (
     CreateBeamDesignRequest,
     CreateDesignByLevelRequest,
 )
+from ..services.dxf_export import generate_beam_design_dxf
 from ..tasks import dispatch_beam_design
 
 router = APIRouter(tags=["designs"])
@@ -177,12 +178,9 @@ async def create_beam_design_by_level(
     return BeamDesignPublic.model_validate(design)
 
 
-@router.get("/beam-designs/{design_id}", response_model=BeamDesignPublic)
-async def get_beam_design(
-    design_id: UUID,
-    user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> BeamDesignPublic:
+async def _load_design_with_access(
+    db: AsyncSession, user_id: UUID, design_id: UUID
+) -> BeamDesign:
     from ..auth.membership import _require_membership
 
     design = (
@@ -201,5 +199,39 @@ async def get_beam_design(
     ).scalar_one_or_none() if building else None
     if project is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    await _require_membership(db, user.id, project.organization_id)
+    await _require_membership(db, user_id, project.organization_id)
+    return design
+
+
+@router.get("/beam-designs/{design_id}", response_model=BeamDesignPublic)
+async def get_beam_design(
+    design_id: UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> BeamDesignPublic:
+    design = await _load_design_with_access(db, user.id, design_id)
     return BeamDesignPublic.model_validate(design)
+
+
+@router.get("/beam-designs/{design_id}/export/dxf")
+async def export_beam_design_dxf(
+    design_id: UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    design = await _load_design_with_access(db, user.id, design_id)
+    if not design.status.startswith("completed"):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Diseño en estado '{design.status}'. Debe estar completed para exportar.",
+        )
+    result = design.result_summary or {}
+    elements = result.get("elements", [])
+    payload = {"name": design.name, "config": design.config}
+    dxf_bytes = generate_beam_design_dxf(payload, elements)
+    filename = f"beam-design-{design.name.replace(' ', '_')[:40]}-{design.id.hex[:8]}.dxf"
+    return Response(
+        content=dxf_bytes,
+        media_type="application/dxf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

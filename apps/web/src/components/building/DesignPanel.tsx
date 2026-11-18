@@ -336,11 +336,21 @@ function DesignItem({ design }: { design: BeamDesign }) {
               {design.config.fy_mpa} MPa
             </p>
           </div>
-          {canExpand && (
-            <Button size="sm" variant="ghost" onClick={() => setExpanded(!expanded)}>
-              {expanded ? 'Ocultar' : 'Ver resultados'}
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {canExpand && (
+              <a
+                href={designsApi.dxfUrl(design.id)}
+                className="inline-flex h-7 items-center rounded-md border border-cc-gray-200 px-3 text-xs font-medium text-cc-gray-700 hover:bg-cc-gray-50 dark:border-cc-navy-700 dark:text-cc-gray-200 dark:hover:bg-cc-navy-800"
+              >
+                Descargar DXF
+              </a>
+            )}
+            {canExpand && (
+              <Button size="sm" variant="ghost" onClick={() => setExpanded(!expanded)}>
+                {expanded ? 'Ocultar' : 'Ver resultados'}
+              </Button>
+            )}
+          </div>
         </div>
 
         {design.status === 'failed' && design.log && (
