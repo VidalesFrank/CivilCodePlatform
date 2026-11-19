@@ -3,20 +3,27 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../lib/cn'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-cc-navy-900 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-cc-navy-900 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
         primary:
-          'bg-cc-blue-600 text-white hover:bg-cc-blue-500 active:bg-cc-blue-700',
+          // CTA premium (cyan→blue gradient + glow) — igual que PerformanceLabs
+          'rounded-[10px] text-white border-0 focus-visible:ring-cc-cyan-500 ' +
+          '[background:linear-gradient(135deg,#22d3ee_0%,#3b82f6_100%)] ' +
+          '[box-shadow:0_8px_24px_-8px_rgba(34,211,238,0.55),inset_0_1px_0_rgba(255,255,255,0.25)] ' +
+          'hover:brightness-105 hover:-translate-y-px ' +
+          'hover:[box-shadow:0_12px_32px_-10px_rgba(34,211,238,0.7),inset_0_1px_0_rgba(255,255,255,0.3)]',
         secondary:
-          'bg-cc-gray-100 text-cc-gray-900 hover:bg-cc-gray-200 dark:bg-cc-navy-800 dark:text-white dark:hover:bg-cc-navy-700',
+          'rounded-md bg-cc-gray-100 text-cc-gray-900 hover:bg-cc-gray-200 dark:bg-cc-navy-800 dark:text-white dark:hover:bg-cc-navy-700 focus-visible:ring-cc-cyan-500',
         ghost:
-          'bg-transparent text-cc-gray-700 hover:bg-cc-gray-100 dark:text-cc-gray-300 dark:hover:bg-cc-navy-800',
+          'rounded-md bg-transparent text-cc-gray-700 hover:bg-cc-gray-100 dark:text-cc-gray-300 dark:hover:bg-cc-navy-800 focus-visible:ring-cc-cyan-500',
         outline:
-          'border border-cc-gray-200 bg-transparent text-cc-gray-900 hover:bg-cc-gray-50 dark:border-cc-navy-700 dark:text-white dark:hover:bg-cc-navy-800',
-        danger: 'bg-cc-danger-500 text-white hover:bg-cc-danger-600',
-        success: 'bg-cc-success-500 text-white hover:bg-cc-success-600',
+          'rounded-md border border-cc-gray-200 bg-transparent text-cc-gray-900 hover:bg-cc-gray-50 dark:border-cc-navy-700 dark:text-white dark:hover:bg-cc-navy-800 focus-visible:ring-cc-cyan-500',
+        danger:
+          'rounded-md bg-cc-danger-500 text-white hover:bg-cc-danger-600 focus-visible:ring-cc-danger-500',
+        success:
+          'rounded-md bg-cc-success-500 text-white hover:bg-cc-success-600 focus-visible:ring-cc-success-500',
       },
       size: {
         sm: 'h-8 px-3 text-xs',

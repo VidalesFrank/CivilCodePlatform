@@ -14,6 +14,7 @@ import {
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { Breadcrumb, type BreadcrumbItem } from './Breadcrumb'
 
 function getInitials(fullName: string | undefined): string {
   if (!fullName) return '??'
@@ -25,7 +26,19 @@ function getInitials(fullName: string | undefined): string {
     .join('')
 }
 
-export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
+export interface TopBarProps {
+  onMenuClick?: () => void
+  onSidebarToggle?: () => void
+  sidebarCollapsed?: boolean
+  breadcrumb?: BreadcrumbItem[]
+}
+
+export function TopBar({
+  onMenuClick,
+  onSidebarToggle,
+  sidebarCollapsed,
+  breadcrumb,
+}: TopBarProps) {
   const router = useRouter()
   const [user, setUser] = useState<UserPublic | null>(null)
   const [loading, setLoading] = useState(true)
@@ -47,14 +60,16 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   }
 
   return (
-    <header className="flex h-14 items-center justify-between border-cc-gray-200 border-b bg-white px-3 sm:px-4 dark:border-cc-navy-700 dark:bg-cc-navy-900">
+    <header
+      className="sticky top-0 z-30 flex h-14 items-center justify-between border-cc-gray-200 border-b px-3 sm:px-4 dark:border-cc-navy-700 cc-glass"
+    >
       <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-        {/* Hamburger (solo en mobile) */}
+        {/* Hamburger mobile */}
         <button
           type="button"
           aria-label="Abrir menú"
           onClick={onMenuClick}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-cc-gray-600 hover:bg-cc-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 md:hidden dark:text-cc-gray-300 dark:hover:bg-cc-navy-800"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-cc-gray-600 hover:bg-cc-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-cyan-500 md:hidden dark:text-cc-gray-300 dark:hover:bg-cc-navy-800"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
@@ -66,12 +81,64 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
           </svg>
         </button>
 
+        {/* Toggle sidebar collapse (desktop) */}
+        {onSidebarToggle && (
+          <button
+            type="button"
+            aria-label={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
+            onClick={onSidebarToggle}
+            className="hidden h-9 w-9 items-center justify-center rounded-md text-cc-gray-600 hover:bg-cc-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-cyan-500 md:inline-flex dark:text-cc-gray-300 dark:hover:bg-cc-navy-800"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              {sidebarCollapsed ? (
+                <path
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 6l6 6-6 6"
+                />
+              ) : (
+                <path
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M15 6l-6 6 6 6"
+                />
+              )}
+            </svg>
+          </button>
+        )}
+
         <Link
           href="/dashboard"
-          className="truncate font-semibold text-cc-navy-900 text-lg tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 focus-visible:ring-offset-1 rounded-sm dark:text-white"
+          className="flex items-center gap-2 truncate focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-cyan-500 focus-visible:ring-offset-1 rounded-sm"
         >
-          CivilCode <span className="text-cc-blue-600">Studio</span>
+          <span
+            aria-hidden
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-xs font-black text-white"
+            style={{
+              background: 'linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%)',
+              boxShadow: '0 4px 12px -4px rgba(34,211,238,0.55)',
+            }}
+          >
+            CC
+          </span>
+          <span className="truncate font-semibold text-cc-navy-900 text-lg tracking-tight dark:text-white">
+            CivilCode <span className="text-cc-cyan-600 dark:text-cc-cyan-400">Studio</span>
+          </span>
         </Link>
+
+        {/* Breadcrumb (oculto en mobile) */}
+        {breadcrumb && breadcrumb.length > 0 && (
+          <div className="hidden min-w-0 items-center lg:flex">
+            <span className="cc-breadcrumb-sep" aria-hidden>·</span>
+            <div className="min-w-0 truncate">
+              <Breadcrumb items={breadcrumb} />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
@@ -83,7 +150,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
               <button
                 type="button"
                 aria-label="Menú de usuario"
-                className="flex items-center gap-2 rounded-md p-1 hover:bg-cc-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 dark:hover:bg-cc-navy-800"
+                className="flex items-center gap-2 rounded-md p-1 hover:bg-cc-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-cyan-500 dark:hover:bg-cc-navy-800"
               >
                 <Avatar>
                   <AvatarFallback>{getInitials(user?.full_name)}</AvatarFallback>

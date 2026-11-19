@@ -22,18 +22,23 @@ const NAV: NavItem[] = [
   { href: '/design/walls', label: 'Muros', Icon: WallIcon },
 ]
 
-interface SidebarProps {
+export interface SidebarProps {
   /** Si está abierto como sheet en mobile */
   open?: boolean
   /** Handler para cerrar el sheet (click en overlay o link) */
   onClose?: () => void
+  /** Si está colapsado (desktop: solo íconos) */
+  collapsed?: boolean
 }
 
-export function Sidebar({ open = false, onClose }: SidebarProps) {
+export function Sidebar({ open = false, onClose, collapsed = false }: SidebarProps) {
   const pathname = usePathname()
 
   const content = (
-    <nav className="flex flex-col gap-0.5 px-3 py-4" aria-label="Navegación principal">
+    <nav
+      className={cn('flex flex-col gap-0.5 py-4', collapsed ? 'px-2' : 'px-3')}
+      aria-label="Navegación principal"
+    >
       {NAV.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname?.startsWith(`${href}/`)
         return (
@@ -42,23 +47,31 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             href={href}
             aria-current={active ? 'page' : undefined}
             onClick={onClose}
+            title={collapsed ? label : undefined}
             className={cn(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 focus-visible:ring-offset-1',
+              'group relative flex items-center gap-3 rounded-md text-sm font-medium transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-cyan-500 focus-visible:ring-offset-1',
+              collapsed ? 'justify-center h-10 w-10 mx-auto' : 'px-3 py-2',
               active
-                ? 'bg-cc-blue-50 text-cc-blue-700 dark:bg-cc-blue-600/15 dark:text-cc-blue-400'
+                ? 'bg-cc-cyan-500/10 text-cc-cyan-600 dark:bg-cc-cyan-500/15 dark:text-cc-cyan-400'
                 : 'text-cc-gray-700 hover:bg-cc-gray-100 dark:text-cc-gray-300 dark:hover:bg-cc-navy-800',
             )}
           >
+            {active && !collapsed && (
+              <span
+                aria-hidden
+                className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r bg-cc-cyan-500"
+              />
+            )}
             <Icon
               size={18}
               className={cn(
                 active
-                  ? 'text-cc-blue-600 dark:text-cc-blue-400'
+                  ? 'text-cc-cyan-600 dark:text-cc-cyan-400'
                   : 'text-cc-gray-500 dark:text-cc-gray-400',
               )}
             />
-            {label}
+            {!collapsed && <span>{label}</span>}
           </Link>
         )
       })}
@@ -68,7 +81,13 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
   return (
     <>
       {/* Desktop: fixed sidebar */}
-      <aside className="hidden w-56 flex-col border-cc-gray-200 border-r bg-white md:flex dark:border-cc-navy-700 dark:bg-cc-navy-900">
+      <aside
+        className={cn(
+          'hidden flex-col border-cc-gray-200 border-r bg-white md:flex dark:border-cc-navy-700 dark:bg-cc-navy-900',
+          'transition-[width] duration-200',
+          collapsed ? 'w-16' : 'w-56',
+        )}
+      >
         {content}
       </aside>
 
