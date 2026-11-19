@@ -288,7 +288,7 @@ function ConfigField({
 }) {
   return (
     <div>
-      <Label>{label}</Label>
+      <Label className="cc-label-mono">{label}</Label>
       <Input
         type="number"
         step={step}

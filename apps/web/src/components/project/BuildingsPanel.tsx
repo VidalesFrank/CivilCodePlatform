@@ -283,19 +283,36 @@ function RevisionRow({
   isActive: boolean
   onChanged: () => void | Promise<void>
 }) {
+  type PanelKey = null | 'viewer' | 'analysis' | 'beams' | 'columns' | 'walls' | 'footings'
   const [working, setWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [viewerOpen, setViewerOpen] = useState(false)
+  const [activePanel, setActivePanel] = useState<PanelKey>(null)
   const [geometry, setGeometry] = useState<RevisionGeometry | null>(null)
   const [loadingGeom, setLoadingGeom] = useState(false)
-  const [analysisOpen, setAnalysisOpen] = useState(false)
-  const [designOpen, setDesignOpen] = useState(false)
-  const [columnDesignOpen, setColumnDesignOpen] = useState(false)
-  const [wallDesignOpen, setWallDesignOpen] = useState(false)
-  const [footingDesignOpen, setFootingDesignOpen] = useState(false)
 
   const canImport = revision.status === 'draft' || revision.status === 'invalid'
   const canView = revision.status === 'imported'
+
+  async function openPanel(key: PanelKey) {
+    if (activePanel === key) {
+      setActivePanel(null)
+      return
+    }
+    if (key === 'viewer' && !geometry) {
+      setLoadingGeom(true)
+      setError(null)
+      try {
+        const g = await buildingsApi.getGeometry(buildingId, revision.id)
+        setGeometry(g)
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Error cargando geometría')
+        return
+      } finally {
+        setLoadingGeom(false)
+      }
+    }
+    setActivePanel(key)
+  }
 
   async function onImport() {
     setWorking(true)
@@ -310,168 +327,150 @@ function RevisionRow({
     }
   }
 
-  async function toggleViewer() {
-    if (viewerOpen) {
-      setViewerOpen(false)
-      return
-    }
-    setViewerOpen(true)
-    if (!geometry) {
-      setLoadingGeom(true)
-      setError(null)
-      try {
-        const g = await buildingsApi.getGeometry(buildingId, revision.id)
-        setGeometry(g)
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Error cargando geometría')
-        setViewerOpen(false)
-      } finally {
-        setLoadingGeom(false)
-      }
-    }
-  }
+  const statusVariant =
+    revision.status === 'imported'
+      ? 'success'
+      : revision.status === 'invalid'
+        ? 'danger'
+        : revision.status === 'queued' || revision.status === 'importing'
+          ? 'info'
+          : 'warning'
+
+  const panelTabs: { key: Exclude<PanelKey, null>; label: string }[] = [
+    { key: 'viewer', label: 'Ver 3D' },
+    { key: 'analysis', label: 'Análisis' },
+    { key: 'beams', label: 'Vigas' },
+    { key: 'columns', label: 'Columnas' },
+    { key: 'walls', label: 'Muros' },
+    { key: 'footings', label: 'Zapatas' },
+  ]
 
   return (
-    <li className="rounded-md bg-cc-gray-50 px-3 py-2 dark:bg-cc-navy-800/50">
-      <div className="flex items-center justify-between">
+    <li className="rounded-lg border border-cc-gray-200 bg-white dark:border-cc-navy-700 dark:bg-cc-navy-900">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-3">
-          <DxfIcon size={20} className="text-cc-gray-500" />
+          <DxfIcon size={20} className="text-cc-cyan-600 dark:text-cc-cyan-400" />
           <div>
             <p className="font-medium text-cc-gray-900 text-sm dark:text-white">
-              Revisión #{revision.revision_number} · {revision.source}
+              Revisión #{revision.revision_number}{' '}
+              <span className="font-mono text-xs text-cc-gray-400">· {revision.source}</span>
             </p>
             <p className="text-cc-gray-500 text-xs">{revision.notes ?? '—'}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge
-            variant={
-              revision.status === 'imported'
-                ? 'success'
-                : revision.status === 'invalid'
-                  ? 'danger'
-                  : revision.status === 'queued' || revision.status === 'importing'
-                    ? 'info'
-                    : 'warning'
-            }
-          >
-            {revision.status}
-          </Badge>
+          <Badge variant={statusVariant}>{revision.status}</Badge>
           {isActive && <Badge variant="info">activa</Badge>}
           {canImport && (
             <Button size="sm" variant="primary" onClick={onImport} loading={working}>
               Importar
             </Button>
           )}
-          {canView && (
-            <Button
-              size="sm"
-              variant={viewerOpen ? 'ghost' : 'secondary'}
-              onClick={toggleViewer}
-              loading={loadingGeom}
-            >
-              {viewerOpen ? 'Ocultar 3D' : 'Ver 3D'}
-            </Button>
-          )}
-          {canView && (
-            <Button
-              size="sm"
-              variant={analysisOpen ? 'ghost' : 'secondary'}
-              onClick={() => setAnalysisOpen(!analysisOpen)}
-            >
-              {analysisOpen ? 'Ocultar análisis' : 'Análisis'}
-            </Button>
-          )}
-          {canView && (
-            <Button
-              size="sm"
-              variant={designOpen ? 'ghost' : 'secondary'}
-              onClick={() => setDesignOpen(!designOpen)}
-            >
-              {designOpen ? 'Ocultar vigas' : 'Diseñar vigas'}
-            </Button>
-          )}
-          {canView && (
-            <Button
-              size="sm"
-              variant={columnDesignOpen ? 'ghost' : 'secondary'}
-              onClick={() => setColumnDesignOpen(!columnDesignOpen)}
-            >
-              {columnDesignOpen ? 'Ocultar columnas' : 'Diseñar columnas'}
-            </Button>
-          )}
-          {canView && (
-            <Button
-              size="sm"
-              variant={wallDesignOpen ? 'ghost' : 'secondary'}
-              onClick={() => setWallDesignOpen(!wallDesignOpen)}
-            >
-              {wallDesignOpen ? 'Ocultar muros' : 'Diseñar muros'}
-            </Button>
-          )}
-          {canView && (
-            <Button
-              size="sm"
-              variant={footingDesignOpen ? 'ghost' : 'secondary'}
-              onClick={() => setFootingDesignOpen(!footingDesignOpen)}
-            >
-              {footingDesignOpen ? 'Ocultar zapatas' : 'Diseñar zapatas'}
-            </Button>
-          )}
         </div>
       </div>
+
       {error && (
-        <p className="mt-2 rounded-md bg-cc-danger-100 px-2 py-1 text-cc-danger-600 text-xs">
+        <p className="mx-4 mb-2 rounded-md bg-cc-danger-100 px-2 py-1 text-cc-danger-600 text-xs dark:bg-cc-danger-500/20">
           {error}
         </p>
       )}
-      {viewerOpen && geometry && (
-        <div className="mt-3">
-          <ModelViewer3D geometry={geometry} />
-        </div>
-      )}
-      {analysisOpen && (
-        <div className="mt-3">
-          <AnalysisPanel buildingId={buildingId} revisionId={revision.id} />
-        </div>
-      )}
-      {designOpen && (
-        <div className="mt-3">
-          <DesignPanel buildingId={buildingId} revisionId={revision.id} />
-        </div>
-      )}
-      {columnDesignOpen && (
-        <div className="mt-3">
-          <ColumnDesignPanel buildingId={buildingId} revisionId={revision.id} />
-        </div>
-      )}
-      {wallDesignOpen && (
-        <div className="mt-3">
-          <SimpleDesignPanel
-            buildingId={buildingId}
-            revisionId={revision.id}
-            title="Diseño de muros · NSR-10 (cortante en plano simplificado)"
-            description="Cuantías mínimas ρh/ρv, Vn con factor αc por relación hw/Lw, flag de elementos de borde confinados."
-            elementKinds={['wall']}
-            listDesigns={wallDesignsApi.list}
-            dispatchByLevel={(bId, rId, lId) => wallDesignsApi.createByLevel(bId, rId, lId, {})}
-            emptyLevelMessage="Si no hay muros en la revisión importada, el endpoint devolverá 400."
-          />
-        </div>
-      )}
-      {footingDesignOpen && (
-        <div className="mt-3">
-          <SimpleDesignPanel
-            buildingId={buildingId}
-            revisionId={revision.id}
-            title="Diseño de zapatas · NSR-10 (aisladas, cuadradas)"
-            description="Dimensionamiento L×B por q_adm, peralte iterativo por punzonamiento, flexión en cara de columna."
-            elementKinds={['footing', 'column']}
-            listDesigns={footingDesignsApi.list}
-            dispatchByLevel={(bId, rId, lId) => footingDesignsApi.createByLevel(bId, rId, lId, {})}
-            emptyLevelMessage="Toma columnas del nivel seleccionado como arranques; en nivel base típicamente."
-          />
-        </div>
+
+      {canView && (
+        <>
+          <div className="flex flex-wrap items-center gap-1 overflow-x-auto border-cc-gray-100 border-t px-3 py-2 dark:border-cc-navy-800">
+            {panelTabs.map((t) => {
+              const active = activePanel === t.key
+              const loading = t.key === 'viewer' && loadingGeom
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => void openPanel(t.key)}
+                  data-active={active}
+                  className="cc-group-tab"
+                  disabled={loading}
+                >
+                  {loading && (
+                    <svg
+                      aria-hidden
+                      className="h-3.5 w-3.5 animate-spin"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        className="opacity-25"
+                      />
+                      <path
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        fill="currentColor"
+                        className="opacity-75"
+                      />
+                    </svg>
+                  )}
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {activePanel === 'viewer' && geometry && (
+            <div className="border-cc-gray-100 border-t p-4 dark:border-cc-navy-800">
+              <ModelViewer3D geometry={geometry} />
+            </div>
+          )}
+          {activePanel === 'analysis' && (
+            <div className="border-cc-gray-100 border-t p-4 dark:border-cc-navy-800">
+              <AnalysisPanel buildingId={buildingId} revisionId={revision.id} />
+            </div>
+          )}
+          {activePanel === 'beams' && (
+            <div className="border-cc-gray-100 border-t p-4 dark:border-cc-navy-800">
+              <DesignPanel buildingId={buildingId} revisionId={revision.id} />
+            </div>
+          )}
+          {activePanel === 'columns' && (
+            <div className="border-cc-gray-100 border-t p-4 dark:border-cc-navy-800">
+              <ColumnDesignPanel buildingId={buildingId} revisionId={revision.id} />
+            </div>
+          )}
+          {activePanel === 'walls' && (
+            <div className="border-cc-gray-100 border-t p-4 dark:border-cc-navy-800">
+              <SimpleDesignPanel
+                buildingId={buildingId}
+                revisionId={revision.id}
+                title="Diseño de muros · NSR-10 (cortante en plano simplificado)"
+                description="Cuantías mínimas ρh/ρv, Vn con factor αc por relación hw/Lw, flag de elementos de borde confinados."
+                elementKinds={['wall']}
+                listDesigns={wallDesignsApi.list}
+                dispatchByLevel={(bId, rId, lId) =>
+                  wallDesignsApi.createByLevel(bId, rId, lId, {})
+                }
+                emptyLevelMessage="Si no hay muros en la revisión importada, el endpoint devolverá 400."
+              />
+            </div>
+          )}
+          {activePanel === 'footings' && (
+            <div className="border-cc-gray-100 border-t p-4 dark:border-cc-navy-800">
+              <SimpleDesignPanel
+                buildingId={buildingId}
+                revisionId={revision.id}
+                title="Diseño de zapatas · NSR-10 (aisladas, cuadradas)"
+                description="Dimensionamiento L×B por q_adm, peralte iterativo por punzonamiento, flexión en cara de columna."
+                elementKinds={['footing', 'column']}
+                listDesigns={footingDesignsApi.list}
+                dispatchByLevel={(bId, rId, lId) =>
+                  footingDesignsApi.createByLevel(bId, rId, lId, {})
+                }
+                emptyLevelMessage="Toma columnas del nivel seleccionado como arranques; en nivel base típicamente."
+              />
+            </div>
+          )}
+        </>
       )}
     </li>
   )
