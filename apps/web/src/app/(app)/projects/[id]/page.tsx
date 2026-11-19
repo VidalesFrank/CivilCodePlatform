@@ -54,12 +54,15 @@ export default function ProjectDetailPage({
   const [overview, setOverview] = useState<OverviewStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>('overview')
 
   useEffect(() => {
     Promise.all([projectsApi.get(id), statsApi.overview(id)])
       .then(([p, s]) => {
         setProject(p)
         setOverview(s)
+        // Si no hay edificios, llevar al usuario directo a Modelo 3D.
+        if (s.n_buildings === 0) setTab('model')
       })
       .catch((err: unknown) => setError(err instanceof ApiError ? err.message : 'Error de red'))
       .finally(() => setLoading(false))
@@ -124,7 +127,7 @@ export default function ProjectDetailPage({
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <Tabs defaultValue="overview">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
           <TabsList className="overflow-x-auto">
             {TABS.map((t) => (
               <TabsTrigger key={t.id} value={t.id}>
@@ -134,7 +137,7 @@ export default function ProjectDetailPage({
           </TabsList>
 
           <TabsContent value="overview">
-            <OverviewTab project={project} overview={overview} />
+            <OverviewTab project={project} overview={overview} onGoToModel={() => setTab('model')} />
           </TabsContent>
           <TabsContent value="model">
             <BuildingsPanel projectId={project.id} />
@@ -175,12 +178,19 @@ function InlineStat({ label, value, sub }: { label: string; value: number; sub?:
 function OverviewTab({
   project,
   overview,
+  onGoToModel,
 }: {
   project: Project
   overview: OverviewStats | null
+  onGoToModel: () => void
 }) {
+  const needsFirstModel = overview != null && overview.n_buildings === 0
+
   return (
     <div className="space-y-6">
+      {/* Hero CTA: sube tu primer modelo (solo si no hay edificios) */}
+      {needsFirstModel && <FirstModelHero projectCode={project.code} onGoToModel={onGoToModel} />}
+
       {/* 4 stat cards premium */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         <OverviewStat
@@ -252,6 +262,61 @@ function OverviewTab({
           )}
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+function FirstModelHero({
+  projectCode,
+  onGoToModel,
+}: {
+  projectCode: string
+  onGoToModel: () => void
+}) {
+  return (
+    <div
+      className="cc-hero-dark relative overflow-hidden rounded-xl px-6 py-8 sm:px-8 sm:py-10"
+      style={{ animation: 'cc-fade-up 0.4s ease-out both' }}
+    >
+      <span className="cc-hero-pill">
+        <span className="cc-hero-pill-dot" />
+        {projectCode} · Primer paso
+      </span>
+      <h2 className="cc-hero-headline mt-4 text-2xl sm:text-3xl">
+        Sube tu primer modelo <span className="cc-hero-gradient-text">ETABS</span>
+      </h2>
+      <p className="mt-3 max-w-xl text-sm text-[color:var(--hero-text-muted)]">
+        Archivo <code className="font-mono">.e2k</code> o{' '}
+        <code className="font-mono">.xlsx</code>. Crearemos el edificio automáticamente, lo
+        importaremos a la base de datos y podrás visualizarlo en 3D en segundos.
+      </p>
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <button type="button" onClick={onGoToModel} className="cc-cta-primary">
+          Ir a Modelo 3D
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2.2"
+              d="M5 12h14M13 6l6 6-6 6"
+            />
+          </svg>
+        </button>
+        <span className="cc-hero-chip">
+          <span className="cc-hero-chip-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                d="M12 15V3m0 0l-4 4m4-4l4 4M3 15v4a2 2 0 002 2h14a2 2 0 002-2v-4"
+              />
+            </svg>
+          </span>
+          Import automático al subir
+        </span>
+      </div>
     </div>
   )
 }
