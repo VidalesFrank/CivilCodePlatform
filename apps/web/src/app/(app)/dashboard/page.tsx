@@ -84,8 +84,17 @@ export default function DashboardPage() {
             className="mt-7 flex flex-wrap items-center gap-3 cc-fade-up"
             style={{ animationDelay: '240ms' }}
           >
-            <Link href="/projects" className="cc-cta-primary">
-              Ir a proyectos
+            <Link href="/projects?new=1" className="cc-cta-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.4"
+                  d="M12 5v14m-7-7h14"
+                />
+              </svg>
+              Crear proyecto
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
                   stroke="currentColor"
@@ -96,8 +105,8 @@ export default function DashboardPage() {
                 />
               </svg>
             </Link>
-            <Link href="/design/beams" className="cc-cta-ghost">
-              Diseñar vigas
+            <Link href="/projects" className="cc-cta-ghost">
+              Ver proyectos
             </Link>
             <div className="ml-2 flex items-center gap-4">
               <span className="cc-hero-chip">
@@ -134,9 +143,9 @@ export default function DashboardPage() {
             {(
               [
                 {
-                  href: '/projects',
-                  label: 'Proyectos',
-                  desc: 'Crea y organiza tus modelos estructurales.',
+                  href: '/projects?new=1',
+                  label: 'Crear proyecto',
+                  desc: 'Abre el diálogo de nuevo proyecto en un clic.',
                   grad: 'linear-gradient(135deg, #22d3ee, #3b82f6)',
                   Icon: SheetIcon,
                   delay: 320,
@@ -274,7 +283,7 @@ export default function DashboardPage() {
                 ) : projects.length === 0 ? (
                   <EmptyMini
                     text="Aún no tienes proyectos."
-                    cta={{ href: '/projects', label: 'Crear proyecto' }}
+                    cta={{ href: '/projects?new=1', label: 'Crear proyecto' }}
                   />
                 ) : (
                   <ul className="space-y-1">

@@ -7,7 +7,6 @@ import {
   organizations as orgsApi,
   projects as projectsApi,
 } from '@/lib/api'
-import { SheetIcon } from '@civilcode/icons'
 import {
   Badge,
   Button,
@@ -31,6 +30,7 @@ import {
   Skeleton,
 } from '@civilcode/ui'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 type ModalState =
@@ -40,6 +40,8 @@ type ModalState =
   | { kind: 'delete'; project: Project }
 
 export default function ProjectsPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [orgs, setOrgs] = useState<OrganizationWithRole[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,6 +63,15 @@ export default function ProjectsPage() {
   useEffect(() => {
     void reload()
   }, [])
+
+  // Auto-abre el dialog si viene con ?new=1
+  useEffect(() => {
+    if (searchParams?.get('new') === '1') {
+      setModal({ kind: 'create' })
+      // Limpiar el query param del URL para que no reabra al refrescar
+      router.replace('/projects')
+    }
+  }, [searchParams, router])
 
   const close = () => setModal({ kind: 'closed' })
   const afterChange = async () => {
@@ -90,10 +101,19 @@ export default function ProjectsPage() {
             </div>
             <Button
               variant="primary"
-              disabled={orgs.length === 0}
+              size="lg"
               onClick={() => setModal({ kind: 'create' })}
             >
-              + Nuevo proyecto
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.4"
+                  d="M12 5v14m-7-7h14"
+                />
+              </svg>
+              Nuevo proyecto
             </Button>
           </div>
         </div>
@@ -114,14 +134,49 @@ export default function ProjectsPage() {
           ))}
         </div>
       ) : projects.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <SheetIcon size={48} className="mx-auto mb-4 text-cc-gray-400" />
-            <p className="text-cc-gray-600 dark:text-cc-gray-300">
-              Aún no tienes proyectos. Crea el primero con el botón de arriba.
-            </p>
-          </CardContent>
-        </Card>
+        <button
+          type="button"
+          onClick={() => setModal({ kind: 'create' })}
+          className="group w-full rounded-xl border-2 border-cc-gray-200 border-dashed bg-cc-gray-50 px-6 py-16 text-center transition-colors hover:border-cc-cyan-500/60 hover:bg-cc-cyan-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-cyan-500 dark:border-cc-navy-700 dark:bg-cc-navy-800/40 dark:hover:border-cc-cyan-500/60 dark:hover:bg-cc-cyan-500/10"
+        >
+          <span
+            aria-hidden
+            className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl text-white transition-transform group-hover:scale-110"
+            style={{
+              background: 'linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%)',
+              boxShadow: '0 10px 24px -10px rgba(34,211,238,0.6)',
+            }}
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2.4"
+                d="M12 5v14m-7-7h14"
+              />
+            </svg>
+          </span>
+          <h3 className="mt-4 font-bold text-cc-gray-900 text-xl tracking-tight dark:text-white">
+            Crea tu primer proyecto
+          </h3>
+          <p className="mx-auto mt-2 max-w-md text-cc-gray-500 text-sm">
+            Un proyecto agrupa edificios, revisiones ETABS, análisis y diseños. Toma menos de un
+            minuto.
+          </p>
+          <span className="mt-6 inline-flex items-center gap-2 font-medium text-cc-cyan-600 text-sm dark:text-cc-cyan-400">
+            Crear ahora
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2.2"
+                d="M5 12h14M13 6l6 6-6 6"
+              />
+            </svg>
+          </span>
+        </button>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
