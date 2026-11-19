@@ -1,6 +1,7 @@
 'use client'
 
 import { BuildingsPanel } from '@/components/project/BuildingsPanel'
+import { Breadcrumb } from '@/components/shell/Breadcrumb'
 import {
   ApiError,
   type OverviewStats,
@@ -9,7 +10,15 @@ import {
   projects as projectsApi,
   stats as statsApi,
 } from '@/lib/api'
-import { BeamIcon, ColumnIcon, CubeIcon, DxfIcon, MomentIcon, SheetIcon, WallIcon } from '@civilcode/icons'
+import {
+  BeamIcon,
+  ColumnIcon,
+  CubeIcon,
+  DxfIcon,
+  MomentIcon,
+  SheetIcon,
+  WallIcon,
+} from '@civilcode/icons'
 import {
   Badge,
   Card,
@@ -58,7 +67,7 @@ export default function ProjectDetailPage({
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
         <Skeleton className="mb-4 h-10 w-64" />
         <Skeleton className="h-48 w-full" />
       </div>
@@ -67,9 +76,9 @@ export default function ProjectDetailPage({
 
   if (error || !project) {
     return (
-      <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
         <p className="text-cc-danger-600">{error ?? 'Proyecto no encontrado'}</p>
-        <Link href="/projects" className="text-cc-blue-600 text-sm hover:underline">
+        <Link href="/projects" className="text-cc-cyan-600 text-sm hover:underline">
           Volver a proyectos
         </Link>
       </div>
@@ -77,52 +86,88 @@ export default function ProjectDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
-      <div className="mb-6">
-        <nav aria-label="Breadcrumb" className="mb-2 text-sm">
-          <Link
-            href="/projects"
-            className="text-cc-blue-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 focus-visible:ring-offset-1"
-          >
-            ← Proyectos
-          </Link>
-        </nav>
-        <div className="flex flex-wrap items-center gap-3">
-          <Badge variant="info">{project.code}</Badge>
-          <h1 className="font-bold text-2xl text-cc-gray-900 sm:text-3xl dark:text-white">
-            {project.name}
-          </h1>
+    <div>
+      {/* Hero light con breadcrumb + nombre + stats inline */}
+      <section className="border-cc-gray-200 border-b bg-white dark:border-cc-navy-700 dark:bg-cc-navy-900">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+          <Breadcrumb
+            items={[
+              { href: '/dashboard', label: 'Dashboard' },
+              { href: '/projects', label: 'Proyectos' },
+              { label: project.code },
+            ]}
+          />
+          <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge variant="info">{project.code}</Badge>
+                <h1 className="font-bold text-2xl text-cc-gray-900 sm:text-3xl tracking-tight dark:text-white">
+                  {project.name}
+                </h1>
+              </div>
+              <p className="mt-1.5 text-cc-gray-500 text-sm">
+                {project.client ?? 'Sin cliente'}
+                {project.location && ` · ${project.location}`}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <InlineStat label="Edificios" value={overview?.n_buildings ?? 0} />
+              <InlineStat
+                label="Rev. imported"
+                value={overview?.n_revisions_imported ?? 0}
+                sub={overview ? `/ ${overview.n_revisions_total}` : undefined}
+              />
+              <InlineStat label="Diseños" value={overview?.n_designs_completed ?? 0} />
+            </div>
+          </div>
         </div>
-        <p className="mt-1 text-cc-gray-500 text-sm">
-          {project.client ?? 'Sin cliente'} · {project.location ?? 'Sin ubicación'}
-        </p>
-      </div>
+      </section>
 
-      <Tabs defaultValue="overview" className="mb-4">
-        <TabsList className="overflow-x-auto">
-          {TABS.map((t) => (
-            <TabsTrigger key={t.id} value={t.id}>
-              {t.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <Tabs defaultValue="overview">
+          <TabsList className="overflow-x-auto">
+            {TABS.map((t) => (
+              <TabsTrigger key={t.id} value={t.id}>
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        <TabsContent value="overview">
-          <OverviewTab project={project} overview={overview} />
-        </TabsContent>
-        <TabsContent value="model">
-          <BuildingsPanel projectId={project.id} />
-        </TabsContent>
-        <TabsContent value="analysis">
-          <PlaceholderTab title="Análisis" phase="Fase 2 — abrir desde Modelo 3D en la revisión" />
-        </TabsContent>
-        <TabsContent value="design">
-          <DesignTab />
-        </TabsContent>
-        <TabsContent value="documents">
-          <PlaceholderTab title="Documentos" phase="Descarga DXF/PDF desde cada diseño completado" />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="overview">
+            <OverviewTab project={project} overview={overview} />
+          </TabsContent>
+          <TabsContent value="model">
+            <BuildingsPanel projectId={project.id} />
+          </TabsContent>
+          <TabsContent value="analysis">
+            <PlaceholderTab
+              title="Análisis"
+              phase="Abre un análisis desde 'Modelo 3D' en cada revisión importada"
+            />
+          </TabsContent>
+          <TabsContent value="design">
+            <DesignTab />
+          </TabsContent>
+          <TabsContent value="documents">
+            <PlaceholderTab
+              title="Documentos"
+              phase="Descarga DXF / PDF desde cada diseño completado"
+            />
+          </TabsContent>
+        </Tabs>
+      </section>
+    </div>
+  )
+}
+
+function InlineStat({ label, value, sub }: { label: string; value: number; sub?: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-cc-gray-200 bg-cc-gray-50 px-3 py-1.5 dark:border-cc-navy-700 dark:bg-cc-navy-800">
+      <span className="font-mono font-bold text-cc-cyan-600 text-sm dark:text-cc-cyan-400">
+        {value}
+        {sub && <span className="text-cc-gray-400 text-xs ml-0.5">{sub}</span>}
+      </span>
+      <span className="cc-label-mono text-[10px]">{label}</span>
     </div>
   )
 }
@@ -136,38 +181,42 @@ function OverviewTab({
 }) {
   return (
     <div className="space-y-6">
-      {/* Stats cards */}
+      {/* 4 stat cards premium */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         <OverviewStat
-          icon={<CubeIcon size={20} className="text-cc-cyan-600" />}
+          icon={<CubeIcon size={20} />}
+          accent="#22d3ee"
           label="Edificios"
           value={overview?.n_buildings ?? 0}
         />
         <OverviewStat
-          icon={<DxfIcon size={20} className="text-cc-blue-600" />}
+          icon={<DxfIcon size={20} />}
+          accent="#3b82f6"
           label="Revisiones imported"
           value={overview?.n_revisions_imported ?? 0}
           sublabel={overview ? `${overview.n_revisions_total} totales` : undefined}
         />
         <OverviewStat
-          icon={<MomentIcon size={20} className="text-cc-blue-600" />}
+          icon={<MomentIcon size={20} />}
+          accent="#6366f1"
           label="Análisis completados"
           value={overview?.n_analyses_completed ?? 0}
           sublabel={overview ? `${overview.n_analyses_total} totales` : undefined}
         />
         <OverviewStat
-          icon={<BeamIcon size={20} className="text-cc-cyan-600" />}
+          icon={<BeamIcon size={20} />}
+          accent="#8b5cf6"
           label="Diseños completados"
           value={overview?.n_designs_completed ?? 0}
           sublabel={overview ? `${overview.n_designs_total} totales` : undefined}
         />
       </div>
 
-      {/* Info + Descripción + Actividad */}
+      {/* Info + Descripción */}
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-2">
           <CardContent className="pt-6">
-            <CardTitle className="text-base">Información</CardTitle>
+            <CardTitle>Información</CardTitle>
             <dl className="mt-4 space-y-2 text-sm">
               <Row label="Código" value={project.code} />
               <Row label="Nombre" value={project.name} />
@@ -178,18 +227,18 @@ function OverviewTab({
         </Card>
         <Card className="lg:col-span-3">
           <CardContent className="pt-6">
-            <CardTitle className="text-base">Descripción</CardTitle>
+            <CardTitle>Descripción</CardTitle>
             <CardDescription className="mt-2 whitespace-pre-wrap">
-              {project.description ?? 'Sin descripción. Agrega una desde edición del proyecto.'}
+              {project.description ?? 'Sin descripción. Agrega una desde la edición del proyecto.'}
             </CardDescription>
           </CardContent>
         </Card>
       </div>
 
-      {/* Actividad reciente del proyecto */}
+      {/* Actividad reciente */}
       <Card>
         <CardContent className="pt-6">
-          <CardTitle className="mb-3 text-base">Actividad reciente</CardTitle>
+          <CardTitle className="mb-3">Actividad reciente</CardTitle>
           {!overview || overview.recent_activity.length === 0 ? (
             <p className="py-4 text-center text-cc-gray-500 text-sm">
               Sin actividad aún. Sube un modelo ETABS desde la tab "Modelo 3D" para comenzar.
@@ -209,11 +258,13 @@ function OverviewTab({
 
 function OverviewStat({
   icon,
+  accent,
   label,
   value,
   sublabel,
 }: {
   icon: React.ReactNode
+  accent: string
   label: string
   value: number
   sublabel?: string
@@ -222,10 +273,19 @@ function OverviewStat({
     <Card>
       <CardContent className="pt-5">
         <div className="mb-2 flex items-center gap-2">
-          {icon}
-          <p className="text-cc-gray-500 text-xs uppercase tracking-wide">{label}</p>
+          <span
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg"
+            style={{
+              background: `color-mix(in srgb, ${accent} 12%, transparent)`,
+              color: accent,
+              border: `1px solid color-mix(in srgb, ${accent} 25%, transparent)`,
+            }}
+          >
+            {icon}
+          </span>
+          <p className="cc-label-mono text-[10px]">{label}</p>
         </div>
-        <p className="font-bold text-cc-gray-900 text-2xl dark:text-white">{value}</p>
+        <p className="font-mono font-bold text-cc-gray-900 text-2xl dark:text-white">{value}</p>
         {sublabel && <p className="mt-1 text-cc-gray-400 text-xs">{sublabel}</p>}
       </CardContent>
     </Card>
@@ -277,8 +337,8 @@ function ActivityRow({ item }: { item: RecentActivityItem }) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4">
-      <dt className="text-cc-gray-500">{label}</dt>
-      <dd className="text-cc-gray-900 dark:text-white">{value}</dd>
+      <dt className="cc-label-mono text-[10px]">{label}</dt>
+      <dd className="text-cc-gray-900 text-sm dark:text-white">{value}</dd>
     </div>
   )
 }
@@ -288,7 +348,7 @@ function PlaceholderTab({ title, phase }: { title: string; phase: string }) {
     <Card>
       <CardContent className="py-12 text-center">
         <SheetIcon size={48} className="mx-auto mb-4 text-cc-gray-400" />
-        <CardTitle className="text-base">{title}</CardTitle>
+        <CardTitle>{title}</CardTitle>
         <CardDescription className="mt-2">{phase}</CardDescription>
       </CardContent>
     </Card>
@@ -297,27 +357,78 @@ function PlaceholderTab({ title, phase }: { title: string; phase: string }) {
 
 function DesignTab() {
   const MODULES = [
-    { href: '/design/beams', label: 'Vigas', Icon: BeamIcon, phase: 'Fase 3a-b · listo' },
-    { href: '/design/columns', label: 'Columnas', Icon: ColumnIcon, phase: 'Fase 3c · listo' },
-    { href: '/design/walls', label: 'Muros', Icon: WallIcon, phase: 'Fase 3d · próximamente' },
-    { href: '/design/footings', label: 'Zapatas', Icon: WallIcon, phase: 'Fase 3e · próximamente' },
-    { href: '/design/joists', label: 'Nervios', Icon: BeamIcon, phase: 'Fase 3f · próximamente' },
+    {
+      href: '/design/beams',
+      label: 'Vigas',
+      Icon: BeamIcon,
+      accent: '#22d3ee',
+      active: true,
+      phase: 'Fase 3a-b · listo',
+    },
+    {
+      href: '/design/columns',
+      label: 'Columnas',
+      Icon: ColumnIcon,
+      accent: '#3b82f6',
+      active: true,
+      phase: 'Fase 3c · listo',
+    },
+    {
+      href: '/design/walls',
+      label: 'Muros',
+      Icon: WallIcon,
+      accent: '#6366f1',
+      active: true,
+      phase: 'Fase 3d · listo',
+    },
+    {
+      href: '/design/footings',
+      label: 'Zapatas',
+      Icon: WallIcon,
+      accent: '#8b5cf6',
+      active: true,
+      phase: 'Fase 3e · listo',
+    },
+    {
+      href: '/design/joists',
+      label: 'Nervios',
+      Icon: BeamIcon,
+      accent: '#10b981',
+      active: false,
+      phase: 'Comparte pipeline de vigas',
+    },
   ]
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      {MODULES.map(({ href, label, Icon, phase }) => (
+      {MODULES.map(({ href, label, Icon, accent, active, phase }, i) => (
         <Link
           key={href}
-          href={href}
-          className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-blue-500 focus-visible:ring-offset-1 rounded-lg"
+          href={active ? href : '#'}
+          className="cc-tool-card cc-fade-up focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-cyan-500 focus-visible:ring-offset-2"
+          data-active={active}
+          style={{
+            ['--_card-accent' as string]: accent,
+            animationDelay: `${i * 60}ms`,
+          }}
+          onClick={(e) => {
+            if (!active) e.preventDefault()
+          }}
         >
-          <Card className="transition-shadow hover:shadow-md">
-            <CardContent className="pt-6">
-              <Icon size={28} className="mb-3 text-cc-blue-600" />
-              <CardTitle className="text-base">{label}</CardTitle>
-              <CardDescription className="mt-1">{phase}</CardDescription>
-            </CardContent>
-          </Card>
+          <div className="flex items-start justify-between">
+            <span
+              className="cc-tool-card-icon"
+              style={{ ['--_card-accent' as string]: accent }}
+            >
+              <Icon size={20} />
+            </span>
+            <Badge variant={active ? 'success' : 'neutral'}>
+              {active ? 'Listo' : 'Pronto'}
+            </Badge>
+          </div>
+          <div>
+            <p className="font-semibold text-sm text-cc-gray-900 dark:text-white">{label}</p>
+            <p className="mt-1 text-xs text-cc-gray-500 dark:text-cc-gray-400">{phase}</p>
+          </div>
         </Link>
       ))}
     </div>

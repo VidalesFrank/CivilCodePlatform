@@ -69,24 +69,37 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-bold text-2xl text-cc-gray-900 sm:text-3xl dark:text-white">
-            Proyectos
-          </h1>
-          <p className="mt-1 text-cc-gray-500 text-sm">
-            Crea, lista y abre los proyectos estructurales de tu organización.
-          </p>
+    <div>
+      <section className="border-cc-gray-200 border-b bg-white dark:border-cc-navy-700 dark:bg-cc-navy-900">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+          <nav aria-label="Breadcrumb" className="cc-breadcrumb mb-3">
+            <a href="/dashboard" className="hover:text-cc-gray-900 dark:hover:text-white">
+              Dashboard
+            </a>
+            <span className="cc-breadcrumb-sep">/</span>
+            <span className="text-cc-gray-900 dark:text-white">Proyectos</span>
+          </nav>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h1 className="font-bold text-2xl text-cc-gray-900 sm:text-3xl tracking-tight dark:text-white">
+                Proyectos
+              </h1>
+              <p className="mt-1 text-cc-gray-500 text-sm">
+                Crea, lista y abre los proyectos estructurales de tu organización.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              disabled={orgs.length === 0}
+              onClick={() => setModal({ kind: 'create' })}
+            >
+              + Nuevo proyecto
+            </Button>
+          </div>
         </div>
-        <Button
-          variant="primary"
-          disabled={orgs.length === 0}
-          onClick={() => setModal({ kind: 'create' })}
-        >
-          Nuevo proyecto
-        </Button>
-      </div>
+      </section>
+
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 
       {error && (
         <div className="mb-4 rounded-md bg-cc-danger-100 px-3 py-2 text-cc-danger-600 text-sm">
@@ -151,6 +164,7 @@ export default function ProjectsPage() {
           <DeleteConfirm project={modal.project} onClose={close} onDeleted={afterChange} />
         )}
       </Dialog>
+      </div>
     </div>
   )
 }
@@ -167,7 +181,7 @@ function ProjectCard({
   onDelete: () => void
 }) {
   return (
-    <Card className="transition-shadow hover:shadow-md">
+    <Card interactive className="cc-fade-up group">
       <CardContent className="pt-6">
         <div className="mb-2 flex items-start justify-between">
           <Badge variant="info">{project.code}</Badge>
@@ -175,7 +189,7 @@ function ProjectCard({
             <DropdownMenuTrigger>
               <button
                 type="button"
-                className="rounded p-1 text-cc-gray-400 hover:bg-cc-gray-100 hover:text-cc-gray-700 dark:hover:bg-cc-navy-800"
+                className="rounded p-1 text-cc-gray-400 opacity-0 transition-opacity hover:bg-cc-gray-100 hover:text-cc-gray-700 focus:opacity-100 group-hover:opacity-100 dark:hover:bg-cc-navy-800"
                 aria-label="Acciones"
               >
                 ⋯
@@ -185,7 +199,7 @@ function ProjectCard({
               <DropdownMenuItem onSelect={onEdit}>Editar</DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={onDelete}
-                className="text-cc-danger-600 hover:bg-cc-danger-50 dark:hover:bg-cc-danger-900/20"
+                className="text-cc-danger-600 hover:bg-cc-danger-100 dark:hover:bg-cc-danger-600/10"
               >
                 Eliminar
               </DropdownMenuItem>
