@@ -1,6 +1,7 @@
 'use client'
 
 import { AnalysisPanel } from '@/components/building/AnalysisPanel'
+import { ForcesLoader } from '@/components/building/ForcesLoader'
 import { ColumnDesignPanel } from '@/components/building/ColumnDesignPanel'
 import { DesignPanel } from '@/components/building/DesignPanel'
 import { ModelViewer3D } from '@/components/building/ModelViewer3D'
@@ -595,6 +596,14 @@ function RevisionRow({
 
       {canView && (
         <>
+          <div className="border-cc-gray-200 border-t px-3 py-3 dark:border-cc-navy-700">
+            <ForcesLoader
+              buildingId={buildingId}
+              revision={revision}
+              onChanged={onChanged}
+            />
+          </div>
+
           <div className="flex flex-wrap items-center gap-1 overflow-x-auto border-cc-gray-200 border-t px-3 py-2 dark:border-cc-navy-700">
             {panelTabs.map((t) => {
               const active = activePanel === t.key

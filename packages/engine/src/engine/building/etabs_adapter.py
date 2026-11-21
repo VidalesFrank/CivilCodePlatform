@@ -22,7 +22,9 @@ def _read(xl: pd.ExcelFile, sheet: str) -> pd.DataFrame | None:
     if sheet not in xl.sheet_names:
         return None
     df = pd.read_excel(xl, sheet_name=sheet, skiprows=1, header=0)
-    return df.drop(index=0).reset_index(drop=True)
+    if len(df) == 0:
+        return df
+    return df.iloc[1:].reset_index(drop=True)
 
 
 def _read_units_row(xl: pd.ExcelFile, sheet: str) -> dict[str, str]:
@@ -68,9 +70,9 @@ def _write_sheet(wb: Workbook, sheet_name: str, table_key: str,
 def detect_version(xlsx_path: str) -> str:
     """Devuelve '23' si el archivo es ETABS 23, '17' si es ETABS 17 (o compatible)."""
     try:
-        xl = pd.ExcelFile(xlsx_path)
-        if 'Objects and Elements - Areas' in xl.sheet_names:
-            return '23'
+        with pd.ExcelFile(xlsx_path) as xl:
+            if 'Objects and Elements - Areas' in xl.sheet_names:
+                return '23'
     except Exception:
         pass
     return '17'
@@ -584,6 +586,8 @@ def adapt_e23_to_e17(input_path: str, output_path: str) -> None:
     df_m  = _t_materials(df_conc_data, df_mech_props) if df_conc_data is not None else None
     df_r  = _t_restraints(df_restraints) if df_restraints is not None else None
     units_fr_prop = _read_units_row(xl, 'Frame Prop - Summary')
+    xl.close()  # liberar el handle del archivo antes de que Windows bloquee el tempdir
+
     df_fs = _t_frame_sections(df_fr_prop_sum, units=units_fr_prop) if df_fr_prop_sum is not None else None
     df_fa = _t_frame_assigns(df_fr_sect_prop, df_fr_summary) if df_fr_sect_prop is not None else None
     df_sa = _t_shell_assigns(df_area_sect_prop) if df_area_sect_prop is not None else None

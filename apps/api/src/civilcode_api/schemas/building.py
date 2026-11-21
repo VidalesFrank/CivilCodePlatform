@@ -11,6 +11,8 @@ class BuildingRevisionPublic(BaseModel):
     source: str
     status: str
     notes: str | None
+    forces_status: str = "none"
+    forces_notes: str | None = None
 
     model_config = {"from_attributes": True}
 

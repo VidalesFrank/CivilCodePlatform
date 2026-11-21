@@ -32,7 +32,7 @@ class BeamDesign(Base):
     element_ids: Mapped[list[Any]] = mapped_column(JSONB, nullable=False, default=list)
     config: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
 
-    status: Mapped[str] = mapped_column(String(16), nullable=False, index=True, default="pending")
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True, default="pending")
     result_summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     log: Mapped[str | None] = mapped_column(Text, nullable=True)
 

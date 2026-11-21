@@ -28,7 +28,7 @@ class AnalysisRun(Base):
     )
 
     kind: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    status: Mapped[str] = mapped_column(String(16), nullable=False, index=True, default="pending")
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True, default="pending")
 
     inputs: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     result_summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)

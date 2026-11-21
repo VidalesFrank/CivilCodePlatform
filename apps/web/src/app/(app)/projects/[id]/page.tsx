@@ -1,7 +1,10 @@
 'use client'
 
 import { BuildingsPanel } from '@/components/project/BuildingsPanel'
+import { ProjectAnalysisTab } from '@/components/project/ProjectAnalysisTab'
 import { Breadcrumb } from '@/components/shell/Breadcrumb'
+import { BuildingIcon, SparkleIcon } from '@/components/shell/nav-icons'
+import { projectPalette } from '@/lib/project-colors'
 import {
   ApiError,
   type OverviewStats,
@@ -10,69 +13,69 @@ import {
   projects as projectsApi,
   stats as statsApi,
 } from '@/lib/api'
-import {
-  BeamIcon,
-  ColumnIcon,
-  CubeIcon,
-  DxfIcon,
-  MomentIcon,
-  SheetIcon,
-  WallIcon,
-} from '@civilcode/icons'
-import {
-  Badge,
-  Card,
-  CardContent,
-  CardDescription,
-  CardTitle,
-  Skeleton,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@civilcode/ui'
+import { BeamIcon, ColumnIcon, CubeIcon, DxfIcon, MomentIcon, WallIcon } from '@civilcode/icons'
+import { Badge, Button, Skeleton } from '@civilcode/ui'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 
 type Tab = 'overview' | 'model' | 'analysis' | 'design' | 'documents'
 
-const TABS: { id: Tab; label: string }[] = [
+interface TabDef {
+  id: Tab
+  label: string
+  count?: (s: OverviewStats | null) => number | undefined
+}
+
+const TABS: TabDef[] = [
   { id: 'overview', label: 'Resumen' },
-  { id: 'model', label: 'Modelo 3D' },
-  { id: 'analysis', label: 'Análisis' },
-  { id: 'design', label: 'Diseño' },
+  { id: 'model', label: 'Modelo 3D', count: (s) => s?.n_buildings },
+  { id: 'analysis', label: 'Análisis', count: (s) => s?.n_analyses_completed },
+  { id: 'design', label: 'Diseño', count: (s) => s?.n_designs_completed },
   { id: 'documents', label: 'Documentos' },
 ]
 
-export default function ProjectDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+function isTab(v: string | null): v is Tab {
+  return v === 'overview' || v === 'model' || v === 'analysis' || v === 'design' || v === 'documents'
+}
+
+export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
+  const searchParams = useSearchParams()
+  const initialTab: Tab = (() => {
+    const q = searchParams?.get('tab') ?? null
+    return isTab(q) ? q : 'overview'
+  })()
   const [project, setProject] = useState<Project | null>(null)
   const [overview, setOverview] = useState<OverviewStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>('overview')
+  const [tab, setTab] = useState<Tab>(initialTab)
 
   useEffect(() => {
     Promise.all([projectsApi.get(id), statsApi.overview(id)])
       .then(([p, s]) => {
         setProject(p)
         setOverview(s)
-        // Si no hay edificios, llevar al usuario directo a Modelo 3D.
-        if (s.n_buildings === 0) setTab('model')
+        // Solo forzar 'model' si el usuario NO explicitó un tab por query
+        if (s.n_buildings === 0 && initialTab === 'overview') setTab('model')
       })
       .catch((err: unknown) => setError(err instanceof ApiError ? err.message : 'Error de red'))
       .finally(() => setLoading(false))
+    // initialTab es snapshot al mount, no queremos reaccionar a cambios posteriores del query
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   if (loading) {
     return (
       <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
-        <Skeleton className="mb-4 h-10 w-64" />
-        <Skeleton className="h-48 w-full" />
+        <Skeleton className="mb-3 h-5 w-48" />
+        <Skeleton className="mb-6 h-40 w-full rounded-2xl" />
+        <div className="grid gap-3 sm:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24" />
+          ))}
+        </div>
       </div>
     )
   }
@@ -88,89 +91,161 @@ export default function ProjectDetailPage({
     )
   }
 
+  const palette = projectPalette(project.code || project.id, project.id)
+
   return (
-    <div>
-      {/* Hero light con breadcrumb + nombre + stats inline */}
-      <section className="border-cc-gray-200 border-b bg-white dark:border-cc-navy-700 dark:bg-cc-navy-900">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-          <Breadcrumb
-            items={[
-              { href: '/dashboard', label: 'Dashboard' },
-              { href: '/projects', label: 'Proyectos' },
-              { label: project.code },
-            ]}
+    <div className="mx-auto max-w-7xl px-4 pt-5 pb-6 sm:px-6 sm:pt-6 lg:px-8">
+      <Breadcrumb
+        items={[
+          { href: '/dashboard', label: 'Dashboard' },
+          { href: '/projects', label: 'Proyectos' },
+          { label: project.code },
+        ]}
+      />
+
+      <ProjectHero
+        project={project}
+        overview={overview}
+        palette={palette}
+        onGoToModel={() => setTab('model')}
+      />
+
+      <div className="cc-tabs-sticky mt-6">
+        <nav
+          role="tablist"
+          aria-label="Secciones del proyecto"
+          className="flex gap-1 overflow-x-auto"
+        >
+          {TABS.map((t) => {
+            const count = t.count?.(overview)
+            return (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
+                data-active={tab === t.id}
+                onClick={() => setTab(t.id)}
+                className="cc-tab-pill"
+                type="button"
+              >
+                <span>{t.label}</span>
+                {count !== undefined && count > 0 && (
+                  <span className="cc-tab-count">{count}</span>
+                )}
+              </button>
+            )
+          })}
+        </nav>
+      </div>
+
+      <div className="mt-5">
+        {tab === 'overview' && (
+          <OverviewTab project={project} overview={overview} onGoToModel={() => setTab('model')} />
+        )}
+        {tab === 'model' && <BuildingsPanel projectId={project.id} />}
+        {tab === 'analysis' && <ProjectAnalysisTab projectId={project.id} />}
+        {tab === 'design' && <DesignGallery />}
+        {tab === 'documents' && (
+          <PlaceholderTab
+            title="Documentos"
+            phase="Descarga DXF / PDF desde cada diseño completado"
           />
-          <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
-                <Badge variant="info">{project.code}</Badge>
-                <h1 className="font-bold text-2xl text-cc-gray-900 sm:text-3xl tracking-tight dark:text-white">
-                  {project.name}
-                </h1>
-              </div>
-              <p className="mt-1.5 text-cc-gray-500 text-sm">
-                {project.client ?? 'Sin cliente'}
-                {project.location && ` · ${project.location}`}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2 text-xs">
-              <InlineStat label="Edificios" value={overview?.n_buildings ?? 0} />
-              <InlineStat
-                label="Rev. imported"
-                value={overview?.n_revisions_imported ?? 0}
-                sub={overview ? `/ ${overview.n_revisions_total}` : undefined}
-              />
-              <InlineStat label="Diseños" value={overview?.n_designs_completed ?? 0} />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-          <TabsList className="overflow-x-auto">
-            {TABS.map((t) => (
-              <TabsTrigger key={t.id} value={t.id}>
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          <TabsContent value="overview">
-            <OverviewTab project={project} overview={overview} onGoToModel={() => setTab('model')} />
-          </TabsContent>
-          <TabsContent value="model">
-            <BuildingsPanel projectId={project.id} />
-          </TabsContent>
-          <TabsContent value="analysis">
-            <PlaceholderTab
-              title="Análisis"
-              phase="Abre un análisis desde 'Modelo 3D' en cada revisión importada"
-            />
-          </TabsContent>
-          <TabsContent value="design">
-            <DesignTab />
-          </TabsContent>
-          <TabsContent value="documents">
-            <PlaceholderTab
-              title="Documentos"
-              phase="Descarga DXF / PDF desde cada diseño completado"
-            />
-          </TabsContent>
-        </Tabs>
-      </section>
+        )}
+      </div>
     </div>
   )
 }
 
-function InlineStat({ label, value, sub }: { label: string; value: number; sub?: string }) {
+function ProjectHero({
+  project,
+  overview,
+  palette,
+  onGoToModel,
+}: {
+  project: Project
+  overview: OverviewStats | null
+  palette: ReturnType<typeof projectPalette>
+  onGoToModel: () => void
+}) {
+  const style: React.CSSProperties & Record<string, string> = {
+    '--_cover-1': palette.c1,
+    '--_cover-2': palette.c2,
+    '--_accent': palette.accent,
+  }
+  const n = overview?.n_buildings ?? 0
+
   return (
-    <div className="flex items-center gap-2 rounded-md border border-cc-gray-200 bg-cc-gray-50 px-3 py-1.5 dark:border-cc-navy-700 dark:bg-cc-navy-800">
-      <span className="font-mono font-bold text-cc-cyan-600 text-sm dark:text-cc-cyan-400">
-        {value}
-        {sub && <span className="text-cc-gray-400 text-xs ml-0.5">{sub}</span>}
-      </span>
-      <span className="cc-label-mono text-[10px]">{label}</span>
+    <div className="cc-detail-hero cc-fade-up mt-4" style={style}>
+      <div className="flex flex-wrap items-start justify-between gap-6">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <span
+              className="rounded-md border px-2 py-1 font-mono text-[11px] font-bold tracking-widest"
+              style={{
+                borderColor: 'rgba(255,255,255,0.22)',
+                background: 'rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.85)',
+              }}
+            >
+              {project.code}
+            </span>
+            <span className="cc-hero-chip" style={{ color: 'rgba(255,255,255,0.75)' }}>
+              <BuildingIcon size={13} />
+              {n === 0 ? 'Sin edificios' : n === 1 ? '1 edificio' : `${n} edificios`}
+            </span>
+          </div>
+
+          <h1 className="cc-detail-title mt-3">{project.name}</h1>
+
+          <p className="mt-2 text-sm" style={{ color: 'rgba(255,255,255,0.72)' }}>
+            {project.client ?? 'Sin cliente'}
+            {project.location && ` · ${project.location}`}
+          </p>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            {overview?.n_buildings === 0 ? (
+              <>
+                <button type="button" onClick={onGoToModel} className="cc-cta-primary">
+                  <SparkleIcon size={16} />
+                  Subir primer modelo
+                </button>
+                <span className="cc-hero-chip" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                  <span className="cc-hero-chip-icon">
+                    <CubeIcon size={14} />
+                  </span>
+                  Soporta .e2k y .xlsx
+                </span>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={onGoToModel} className="cc-cta-primary">
+                  <CubeIcon size={16} />
+                  Ver Modelo 3D
+                </button>
+                <Link href={`/projects/${project.id}?edit=1`} className="cc-cta-ghost">
+                  Editar proyecto
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 lg:gap-3">
+          <HeroStat label="Edificios" value={overview?.n_buildings ?? 0} />
+          <HeroStat label="Revisiones" value={overview?.n_revisions_imported ?? 0} />
+          <HeroStat label="Análisis" value={overview?.n_analyses_completed ?? 0} />
+          <HeroStat label="Diseños" value={overview?.n_designs_completed ?? 0} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HeroStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="cc-detail-stat min-w-[96px]">
+      <span className="cc-detail-stat-num">{value}</span>
+      <span className="cc-detail-stat-label">{label}</span>
     </div>
   )
 }
@@ -184,176 +259,193 @@ function OverviewTab({
   overview: OverviewStats | null
   onGoToModel: () => void
 }) {
-  const needsFirstModel = overview != null && overview.n_buildings === 0
+  const hasActivity = overview && overview.recent_activity.length > 0
+  const hasBuildings = (overview?.n_buildings ?? 0) > 0
 
   return (
-    <div className="space-y-6">
-      {/* Hero CTA: sube tu primer modelo (solo si no hay edificios) */}
-      {needsFirstModel && <FirstModelHero projectCode={project.code} onGoToModel={onGoToModel} />}
+    <div className="space-y-5">
+      {/* bento row 1: quick module shortcuts */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="cc-panel lg:col-span-2">
+          <div className="cc-panel-title">
+            <h3>Próximos pasos</h3>
+          </div>
+          {!hasBuildings ? (
+            <NextStepsEmpty onGoToModel={onGoToModel} />
+          ) : (
+            <NextStepsList overview={overview} onGoToModel={onGoToModel} />
+          )}
+        </div>
 
-      {/* 4 stat cards premium */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-        <OverviewStat
-          icon={<CubeIcon size={20} />}
-          accent="#22d3ee"
-          label="Edificios"
-          value={overview?.n_buildings ?? 0}
-        />
-        <OverviewStat
-          icon={<DxfIcon size={20} />}
-          accent="#3b82f6"
-          label="Revisiones imported"
-          value={overview?.n_revisions_imported ?? 0}
-          sublabel={overview ? `${overview.n_revisions_total} totales` : undefined}
-        />
-        <OverviewStat
-          icon={<MomentIcon size={20} />}
-          accent="#6366f1"
-          label="Análisis completados"
-          value={overview?.n_analyses_completed ?? 0}
-          sublabel={overview ? `${overview.n_analyses_total} totales` : undefined}
-        />
-        <OverviewStat
-          icon={<BeamIcon size={20} />}
-          accent="#8b5cf6"
-          label="Diseños completados"
-          value={overview?.n_designs_completed ?? 0}
-          sublabel={overview ? `${overview.n_designs_total} totales` : undefined}
-        />
+        <div className="cc-panel">
+          <div className="cc-panel-title">
+            <h3>Información</h3>
+            <span className="cc-label-mono text-[10px]">Datos</span>
+          </div>
+          <dl className="space-y-2.5">
+            <Row label="Código" value={project.code} mono />
+            <Row label="Cliente" value={project.client ?? '—'} />
+            <Row label="Ubicación" value={project.location ?? '—'} />
+          </dl>
+        </div>
       </div>
 
-      {/* Info + Descripción */}
-      <div className="grid gap-4 lg:grid-cols-5">
-        <Card className="lg:col-span-2">
-          <CardContent className="pt-6">
-            <CardTitle>Información</CardTitle>
-            <dl className="mt-4 space-y-2 text-sm">
-              <Row label="Código" value={project.code} />
-              <Row label="Nombre" value={project.name} />
-              <Row label="Cliente" value={project.client ?? '—'} />
-              <Row label="Ubicación" value={project.location ?? '—'} />
-            </dl>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-3">
-          <CardContent className="pt-6">
-            <CardTitle>Descripción</CardTitle>
-            <CardDescription className="mt-2 whitespace-pre-wrap">
-              {project.description ?? 'Sin descripción. Agrega una desde la edición del proyecto.'}
-            </CardDescription>
-          </CardContent>
-        </Card>
-      </div>
+      {/* bento row 2: description + activity */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="cc-panel lg:col-span-2">
+          <div className="cc-panel-title">
+            <h3>Descripción</h3>
+          </div>
+          <p className="whitespace-pre-wrap text-cc-gray-700 text-sm leading-6 dark:text-cc-gray-300">
+            {project.description ??
+              'Sin descripción. Agrega una desde la edición del proyecto para que el equipo y tus clientes entiendan el contexto.'}
+          </p>
+        </div>
 
-      {/* Actividad reciente */}
-      <Card>
-        <CardContent className="pt-6">
-          <CardTitle className="mb-3">Actividad reciente</CardTitle>
-          {!overview || overview.recent_activity.length === 0 ? (
-            <p className="py-4 text-center text-cc-gray-500 text-sm">
-              Sin actividad aún. Sube un modelo ETABS desde la tab "Modelo 3D" para comenzar.
+        <div className="cc-panel">
+          <div className="cc-panel-title">
+            <h3>Actividad reciente</h3>
+            <span className="cc-label-mono text-[10px]">
+              {overview?.recent_activity.length ?? 0}
+            </span>
+          </div>
+          {!hasActivity ? (
+            <p className="py-4 text-cc-gray-500 text-sm">
+              Sin actividad aún. Sube un modelo ETABS para comenzar.
             </p>
           ) : (
             <ul className="divide-y divide-cc-gray-100 dark:divide-cc-navy-800">
-              {overview.recent_activity.map((a, i) => (
+              {overview.recent_activity.slice(0, 5).map((a, i) => (
                 <ActivityRow key={`${a.kind}-${a.created_at}-${i}`} item={a} />
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function FirstModelHero({
-  projectCode,
-  onGoToModel,
-}: {
-  projectCode: string
-  onGoToModel: () => void
-}) {
-  return (
-    <div
-      className="cc-hero-dark relative overflow-hidden rounded-xl px-6 py-8 sm:px-8 sm:py-10"
-      style={{ animation: 'cc-fade-up 0.4s ease-out both' }}
-    >
-      <span className="cc-hero-pill">
-        <span className="cc-hero-pill-dot" />
-        {projectCode} · Primer paso
-      </span>
-      <h2 className="cc-hero-headline mt-4 text-2xl sm:text-3xl">
-        Sube tu primer modelo <span className="cc-hero-gradient-text">ETABS</span>
-      </h2>
-      <p className="mt-3 max-w-xl text-sm text-[color:var(--hero-text-muted)]">
-        Archivo <code className="font-mono">.e2k</code> o{' '}
-        <code className="font-mono">.xlsx</code>. Crearemos el edificio automáticamente, lo
-        importaremos a la base de datos y podrás visualizarlo en 3D en segundos.
-      </p>
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <button type="button" onClick={onGoToModel} className="cc-cta-primary">
-          Ir a Modelo 3D
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2.2"
-              d="M5 12h14M13 6l6 6-6 6"
-            />
-          </svg>
-        </button>
-        <span className="cc-hero-chip">
-          <span className="cc-hero-chip-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                d="M12 15V3m0 0l-4 4m4-4l4 4M3 15v4a2 2 0 002 2h14a2 2 0 002-2v-4"
-              />
-            </svg>
-          </span>
-          Import automático al subir
-        </span>
+        </div>
       </div>
     </div>
   )
 }
 
-function OverviewStat({
-  icon,
-  accent,
-  label,
-  value,
-  sublabel,
-}: {
-  icon: React.ReactNode
-  accent: string
-  label: string
-  value: number
-  sublabel?: string
-}) {
+function NextStepsEmpty({ onGoToModel }: { onGoToModel: () => void }) {
   return (
-    <Card>
-      <CardContent className="pt-5">
-        <div className="mb-2 flex items-center gap-2">
-          <span
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg"
-            style={{
-              background: `color-mix(in srgb, ${accent} 12%, transparent)`,
-              color: accent,
-              border: `1px solid color-mix(in srgb, ${accent} 25%, transparent)`,
-            }}
-          >
-            {icon}
+    <div className="grid gap-3 sm:grid-cols-3">
+      <NextStep
+        step="1"
+        title="Sube un modelo"
+        detail=".e2k o .xlsx"
+        accent="#22d3ee"
+        onClick={onGoToModel}
+        cta="Subir ahora"
+        active
+      />
+      <NextStep step="2" title="Importar y revisar" detail="Validación auto." accent="#3b82f6" />
+      <NextStep step="3" title="Analizar y diseñar" detail="NSR-10" accent="#8b5cf6" />
+    </div>
+  )
+}
+
+function NextStepsList({
+  overview,
+  onGoToModel,
+}: {
+  overview: OverviewStats | null
+  onGoToModel: () => void
+}) {
+  const nR = overview?.n_revisions_imported ?? 0
+  const nA = overview?.n_analyses_completed ?? 0
+  const nD = overview?.n_designs_completed ?? 0
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      <NextStep
+        step="→"
+        title="Revisar modelo 3D"
+        detail={`${nR} revisión${nR === 1 ? '' : 'es'} lista${nR === 1 ? '' : 's'}`}
+        accent="#22d3ee"
+        active
+        onClick={onGoToModel}
+        cta="Abrir"
+      />
+      <NextStep
+        step="→"
+        title="Correr análisis"
+        detail={nA > 0 ? `${nA} completado${nA === 1 ? '' : 's'}` : 'Pendiente'}
+        accent="#3b82f6"
+        active={nR > 0}
+      />
+      <NextStep
+        step="→"
+        title="Diseñar elementos"
+        detail={nD > 0 ? `${nD} completado${nD === 1 ? '' : 's'}` : 'Vigas, columnas, muros'}
+        accent="#8b5cf6"
+        active={nR > 0}
+      />
+    </div>
+  )
+}
+
+function NextStep({
+  step,
+  title,
+  detail,
+  accent,
+  active,
+  onClick,
+  cta,
+}: {
+  step: string
+  title: string
+  detail: string
+  accent: string
+  active?: boolean
+  onClick?: () => void
+  cta?: string
+}) {
+  const style: React.CSSProperties & Record<string, string> = {
+    '--_card-accent': accent,
+    opacity: active ? 1 : 0.6,
+  }
+  return (
+    <button
+      type="button"
+      className="cc-tool-card text-left"
+      data-active={active ? 'true' : 'false'}
+      style={style}
+      onClick={onClick}
+      disabled={!onClick}
+    >
+      <div className="flex items-center justify-between">
+        <span
+          className="cc-tool-card-icon"
+          style={{ ['--_card-accent' as string]: accent, fontSize: 15, fontWeight: 700 }}
+        >
+          {step}
+        </span>
+        {cta && active && (
+          <span className="font-medium text-cc-cyan-600 text-xs dark:text-cc-cyan-400">
+            {cta} →
           </span>
-          <p className="cc-label-mono text-[10px]">{label}</p>
-        </div>
-        <p className="font-mono font-bold text-cc-gray-900 text-2xl dark:text-white">{value}</p>
-        {sublabel && <p className="mt-1 text-cc-gray-400 text-xs">{sublabel}</p>}
-      </CardContent>
-    </Card>
+        )}
+      </div>
+      <div>
+        <p className="font-semibold text-cc-gray-900 text-sm dark:text-white">{title}</p>
+        <p className="mt-1 text-cc-gray-500 text-xs">{detail}</p>
+      </div>
+    </button>
+  )
+}
+
+function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <dt className="cc-label-mono text-[10px]">{label}</dt>
+      <dd
+        className={`max-w-[60%] truncate text-right text-cc-gray-900 text-sm dark:text-white ${
+          mono ? 'font-mono' : ''
+        }`}
+      >
+        {value}
+      </dd>
+    </div>
   )
 }
 
@@ -365,15 +457,10 @@ function ActivityRow({ item }: { item: RecentActivityItem }) {
     hour: '2-digit',
     minute: '2-digit',
   })
-  const icon =
-    item.kind === 'import' ? (
-      <CubeIcon size={16} className="text-cc-cyan-600" />
-    ) : item.kind === 'analysis' ? (
-      <MomentIcon size={16} className="text-cc-blue-600" />
-    ) : (
-      <BeamIcon size={16} className="text-cc-cyan-600" />
-    )
-  const kindLabel = { import: 'Importación', analysis: 'Análisis', design: 'Diseño' }[item.kind]
+  const Icon =
+    item.kind === 'import' ? CubeIcon : item.kind === 'analysis' ? MomentIcon : BeamIcon
+  const color =
+    item.kind === 'import' ? '#22d3ee' : item.kind === 'analysis' ? '#3b82f6' : '#8b5cf6'
   const statusVariant: 'success' | 'danger' | 'info' | 'warning' =
     item.status === 'imported' || item.status === 'completed'
       ? 'success'
@@ -383,14 +470,19 @@ function ActivityRow({ item }: { item: RecentActivityItem }) {
           ? 'danger'
           : 'info'
   return (
-    <li className="flex items-center justify-between gap-2 py-2 text-sm">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="shrink-0">{icon}</span>
+    <li className="flex items-center justify-between gap-2 py-2.5 text-sm">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        <span
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+          style={{
+            background: `color-mix(in srgb, ${color} 12%, transparent)`,
+            color,
+          }}
+        >
+          <Icon size={14} />
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-cc-gray-900 dark:text-white">
-            <span className="text-cc-gray-500">{kindLabel}: </span>
-            <span className="font-medium">{item.label}</span>
-          </p>
+          <p className="truncate text-cc-gray-900 text-[13px] dark:text-white">{item.label}</p>
           <p className="truncate text-cc-gray-400 text-xs">{when}</p>
         </div>
       </div>
@@ -399,103 +491,101 @@ function ActivityRow({ item }: { item: RecentActivityItem }) {
   )
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function PlaceholderTab({ title, phase }: { title: string; phase: string }) {
   return (
-    <div className="flex justify-between gap-4">
-      <dt className="cc-label-mono text-[10px]">{label}</dt>
-      <dd className="text-cc-gray-900 text-sm dark:text-white">{value}</dd>
+    <div className="cc-empty">
+      <span className="cc-empty-icon">
+        <SparkleIcon size={24} />
+      </span>
+      <h3 className="font-bold text-cc-gray-900 text-xl tracking-tight dark:text-white">{title}</h3>
+      <p className="mx-auto mt-2 max-w-md text-cc-gray-500 text-sm">{phase}</p>
     </div>
   )
 }
 
-function PlaceholderTab({ title, phase }: { title: string; phase: string }) {
-  return (
-    <Card>
-      <CardContent className="py-12 text-center">
-        <SheetIcon size={48} className="mx-auto mb-4 text-cc-gray-400" />
-        <CardTitle>{title}</CardTitle>
-        <CardDescription className="mt-2">{phase}</CardDescription>
-      </CardContent>
-    </Card>
-  )
-}
-
-function DesignTab() {
+function DesignGallery() {
   const MODULES = [
     {
-      href: '/design/beams',
       label: 'Vigas',
       Icon: BeamIcon,
       accent: '#22d3ee',
       active: true,
       phase: 'Fase 3a-b · listo',
+      description: 'Flexión, cortante, estribos y despiece DXF/PDF.',
     },
     {
-      href: '/design/columns',
       label: 'Columnas',
       Icon: ColumnIcon,
       accent: '#3b82f6',
       active: true,
       phase: 'Fase 3c · listo',
+      description: 'P-M Bresler, confinamiento DMO/DES, cuantías NSR-10.',
     },
     {
-      href: '/design/walls',
       label: 'Muros',
       Icon: WallIcon,
       accent: '#6366f1',
       active: true,
       phase: 'Fase 3d · listo',
+      description: 'Pier/spandrel, malla H/V, elementos de borde.',
     },
     {
-      href: '/design/footings',
       label: 'Zapatas',
-      Icon: WallIcon,
+      Icon: DxfIcon,
       accent: '#8b5cf6',
       active: true,
       phase: 'Fase 3e · listo',
+      description: 'Dimensionado por q_adm, punzonamiento, flexión.',
     },
     {
-      href: '/design/joists',
       label: 'Nervios',
       Icon: BeamIcon,
       accent: '#10b981',
       active: false,
-      phase: 'Comparte pipeline de vigas',
+      phase: 'Pronto',
+      description: 'Comparte pipeline de vigas por ahora.',
     },
   ]
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {MODULES.map(({ href, label, Icon, accent, active, phase }, i) => (
-        <Link
-          key={href}
-          href={active ? href : '#'}
-          className="cc-tool-card cc-fade-up focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cc-cyan-500 focus-visible:ring-offset-2"
-          data-active={active}
-          style={{
-            ['--_card-accent' as string]: accent,
-            animationDelay: `${i * 60}ms`,
-          }}
-          onClick={(e) => {
-            if (!active) e.preventDefault()
-          }}
-        >
-          <div className="flex items-start justify-between">
-            <span
-              className="cc-tool-card-icon"
-              style={{ ['--_card-accent' as string]: accent }}
-            >
-              <Icon size={20} />
-            </span>
-            <Badge variant={active ? 'success' : 'neutral'}>
-              {active ? 'Listo' : 'Pronto'}
-            </Badge>
+    <>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-semibold text-cc-gray-900 text-base dark:text-white">
+          Módulos de diseño NSR-10
+        </h2>
+        <p className="text-cc-gray-500 text-xs">
+          Abre cada módulo desde una revisión importada en «Modelo 3D»
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {MODULES.map(({ label, Icon, accent, active, phase, description }, i) => (
+          <div
+            key={label}
+            className="cc-tool-card cc-fade-up"
+            data-active={active ? 'true' : 'false'}
+            style={{
+              ['--_card-accent' as string]: accent,
+              animationDelay: `${i * 50}ms`,
+            }}
+          >
+            <div className="flex items-start justify-between">
+              <span
+                className="cc-tool-card-icon"
+                style={{ ['--_card-accent' as string]: accent }}
+              >
+                <Icon size={20} />
+              </span>
+              <Badge variant={active ? 'success' : 'neutral'}>
+                {active ? 'Listo' : 'Pronto'}
+              </Badge>
+            </div>
+            <div>
+              <p className="font-semibold text-cc-gray-900 text-sm dark:text-white">{label}</p>
+              <p className="mt-1 text-cc-gray-500 text-xs">{description}</p>
+              <p className="mt-2 cc-label-mono text-[10px]">{phase}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-sm text-cc-gray-900 dark:text-white">{label}</p>
-            <p className="mt-1 text-xs text-cc-gray-500 dark:text-cc-gray-400">{phase}</p>
-          </div>
-        </Link>
-      ))}
-    </div>
+        ))}
+      </div>
+    </>
   )
 }

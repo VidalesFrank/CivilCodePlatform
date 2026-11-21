@@ -80,3 +80,13 @@ async def dispatch_footing_design(design_id: str) -> str:
         [design_id],
         "design",
     )
+
+
+async def dispatch_forces_import(revision_id: str) -> str:
+    """Encola el parseo de un XLSX de Element Forces de ETABS."""
+    return await asyncio.to_thread(
+        _send_task_sync,
+        "civilcode_worker.tasks.import.run_forces_import",
+        [revision_id],
+        "import",
+    )

@@ -14,6 +14,11 @@ class BeamDesignConfig(BaseModel):
     live_load_kN_m2: float = Field(default=2.0, ge=0.0, le=20.0)
     dead_extra_kN_m2: float = Field(default=1.5, ge=0.0, le=20.0)
     tributary_width_m: float = Field(default=1.0, ge=0.1, le=20.0)
+    # Modo envolvente desde demandas ETABS cargadas en element_forces.
+    use_forces: bool = Field(default=False)
+    combo_flex: list[str] = Field(default_factory=list)
+    combo_shear_vc: list[str] = Field(default_factory=list)
+    combo_shear_vcap: list[str] = Field(default_factory=list)
 
 
 class CreateBeamDesignRequest(BaseModel):

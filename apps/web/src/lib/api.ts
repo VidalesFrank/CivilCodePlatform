@@ -182,6 +182,17 @@ export interface BuildingRevision {
   source: string
   status: string
   notes: string | null
+  forces_status?: 'none' | 'queued' | 'importing' | 'loaded' | 'invalid'
+  forces_notes?: string | null
+}
+
+export interface ForcesSummary {
+  status: 'none' | 'queued' | 'importing' | 'loaded' | 'invalid'
+  notes: string | null
+  n_records: number
+  n_elements_with_forces: number
+  n_load_cases: number
+  load_cases: string[]
 }
 
 export interface Building {
@@ -258,6 +269,60 @@ export const buildings = {
     }),
   getGeometry: (buildingId: string, revisionId: string) =>
     api<RevisionGeometry>(`/api/v1/buildings/${buildingId}/revisions/${revisionId}/geometry`),
+  uploadForces: async (buildingId: string, revisionId: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const url = `${API_BASE}/api/v1/buildings/${buildingId}/revisions/${revisionId}/forces/upload`
+    const res = await fetch(url, { method: 'POST', body: form, credentials: 'include' })
+    const text = await res.text()
+    const body = text ? safeJson(text) : null
+    if (!res.ok) {
+      const msg =
+        body && typeof body === 'object' && 'detail' in body
+          ? String((body as { detail: unknown }).detail)
+          : `HTTP ${res.status}`
+      throw new ApiError(res.status, msg, body)
+    }
+    return body as BuildingRevision
+  },
+  getForcesSummary: (buildingId: string, revisionId: string) =>
+    api<ForcesSummary>(`/api/v1/buildings/${buildingId}/revisions/${revisionId}/forces/summary`),
+  getBeamGroups: (buildingId: string, revisionId: string, levelId?: string) => {
+    const q = levelId ? `?level_id=${levelId}` : ''
+    return api<BeamGroupsResponse>(
+      `/api/v1/buildings/${buildingId}/revisions/${revisionId}/beam-groups${q}`,
+    )
+  },
+}
+
+export interface BeamGroupSpan {
+  element_id: string
+  tag: string
+  section_name: string | null
+  offset_m: number
+  length_m: number
+  flipped: boolean
+  ni: [number, number, number]
+  nj: [number, number, number]
+}
+
+export interface BeamGroupPublic {
+  id: string
+  level_id: string | null
+  total_length_m: number
+  n_spans: number
+  direction: [number, number, number]
+  origin: [number, number, number]
+  end: [number, number, number]
+  supports_m: number[]
+  spans: BeamGroupSpan[]
+}
+
+export interface BeamGroupsResponse {
+  level_id: string | null
+  n_beams: number
+  n_groups: number
+  groups: BeamGroupPublic[]
 }
 
 // --- Analysis runs ---

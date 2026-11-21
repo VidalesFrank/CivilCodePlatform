@@ -49,6 +49,12 @@ class BuildingRevision(Base):
     source_file_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Demandas (Element Forces) importadas opcionalmente desde Excel de ETABS.
+    forces_file_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # estados: "none", "queued", "importing", "loaded", "invalid"
+    forces_status: Mapped[str] = mapped_column(String(32), nullable=False, default="none")
+    forces_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     building: Mapped["Building"] = relationship(
         back_populates="revisions", foreign_keys=[building_id]
     )
